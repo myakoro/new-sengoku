@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SC-06 月次報告画面 - 戦国立身出世SLG</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "游ゴシック", "Yu Gothic", "メイリオ", Meiryo, sans-serif;
+      background-color: #2C2C2C;
+      color: #ffffff;
+      min-height: 100vh;
+      padding: 40px;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    /* ヘッダー */
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #D4AF37;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      color: #D4AF37;
+      margin-bottom: 8px;
+    }
+
+    .header .month {
+      font-size: 16px;
+      color: #CCCCCC;
+    }
+
+    /* セクション */
+    .section {
+      background-color: #3a3a3a;
+      border: 1px solid #555555;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      color: #D4AF37;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #555555;
+    }
+
+    /* 収支表 */
+    .finance-table {
+      width: 100%;
+    }
+
+    .finance-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #444444;
+    }
+
+    .finance-row:last-child {
+      border-bottom: none;
+    }
+
+    .finance-row.total {
+      border-top: 2px solid #555555;
+      margin-top: 8px;
+      padding-top: 12px;
+      font-weight: bold;
+    }
+
+    .finance-row .label {
+      color: #CCCCCC;
+    }
+
+    .finance-row .label.indent {
+      padding-left: 16px;
+      font-size: 13px;
+      color: #888888;
+    }
+
+    .finance-row .value {
+      font-family: Consolas, Monaco, monospace;
+    }
+
+    .finance-row .value.positive {
+      color: #2E7D32;
+    }
+
+    .finance-row .value.negative {
+      color: #C62828;
+    }
+
+    .finance-row .value.gold {
+      color: #D4AF37;
+    }
+
+    /* 米の使い道選択 */
+    .choice-section {
+      margin-top: 16px;
+    }
+
+    .choice-title {
+      font-size: 14px;
+      color: #CCCCCC;
+      margin-bottom: 12px;
+    }
+
+    .choice-buttons {
+      display: flex;
+      gap: 12px;
+    }
+
+    .choice-btn {
+      flex: 1;
+      padding: 16px;
+      font-size: 14px;
+      border: 2px solid #555555;
+      background-color: #2C2C2C;
+      color: #CCCCCC;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+
+    .choice-btn:hover {
+      border-color: #D4AF37;
+      color: #D4AF37;
+    }
+
+    .choice-btn.selected {
+      border-color: #D4AF37;
+      background-color: #D4AF37;
+      color: #1a1a1a;
+    }
+
+    .choice-btn .main {
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    .choice-btn .sub {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    /* 借金返済セクション */
+    .debt-section {
+      background-color: #2C2C2C;
+      padding: 16px;
+      margin-top: 16px;
+    }
+
+    .debt-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .debt-header .label {
+      color: #CCCCCC;
+    }
+
+    .debt-header .value {
+      font-family: Consolas, Monaco, monospace;
+      color: #C62828;
+    }
+
+    /* 評定メッセージ */
+    .evaluation {
+      background-color: #2C2C2C;
+      padding: 16px;
+      border-left: 3px solid #D4AF37;
+    }
+
+    .evaluation .speaker {
+      font-size: 12px;
+      color: #888888;
+      margin-bottom: 8px;
+    }
+
+    .evaluation .message {
+      font-size: 14px;
+      color: #CCCCCC;
+      line-height: 1.8;
+    }
+
+    /* ライバル比較 */
+    .rival-section {
+      display: flex;
+      gap: 16px;
+    }
+
+    .rival-card {
+      flex: 1;
+      background-color: #2C2C2C;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .rival-card .name {
+      font-size: 14px;
+      color: #888888;
+      margin-bottom: 8px;
+    }
+
+    .rival-card .merit {
+      font-size: 24px;
+      font-family: Consolas, Monaco, monospace;
+      margin-bottom: 4px;
+    }
+
+    .rival-card .merit.gold {
+      color: #D4AF37;
+    }
+
+    .rival-card .rank {
+      font-size: 12px;
+      color: #CCCCCC;
+    }
+
+    .rival-comparison {
+      text-align: center;
+      padding: 12px;
+      background-color: #2C2C2C;
+      margin-top: 12px;
+    }
+
+    .rival-comparison .diff {
+      font-size: 20px;
+      font-weight: bold;
+      font-family: Consolas, Monaco, monospace;
+    }
+
+    .rival-comparison .diff.positive {
+      color: #2E7D32;
+    }
+
+    .rival-comparison .message {
+      font-size: 13px;
+      color: #888888;
+      margin-top: 4px;
+    }
+
+    /* 続けるボタン */
+    .continue-btn {
+      width: 100%;
+      padding: 16px;
+      font-size: 18px;
+      font-weight: bold;
+      border: 2px solid #D4AF37;
+      background-color: #D4AF37;
+      color: #1a1a1a;
+      cursor: pointer;
+      margin-top: 24px;
+    }
+
+    .continue-btn:hover {
+      background-color: #c9a432;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- ヘッダー -->
+    <div class="header">
+      <h1>月次報告</h1>
+      <p class="month">1575年3月</p>
+    </div>
+
+    <!-- 収入 -->
+    <div class="section">
+      <h2 class="section-title">収入</h2>
+      <div class="finance-table">
+        <div class="finance-row">
+          <span class="label">扶持米</span>
+          <span class="value positive">+1.80石</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 支出 -->
+    <div class="section">
+      <h2 class="section-title">支出</h2>
+      <div class="finance-table">
+        <div class="finance-row">
+          <span class="label indent">従僕3名</span>
+          <span class="value negative">-0.90石</span>
+        </div>
+        <div class="finance-row">
+          <span class="label indent">生活費</span>
+          <span class="value negative">-0.15石</span>
+        </div>
+        <div class="finance-row total">
+          <span class="label">支出合計</span>
+          <span class="value negative">-1.05石</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 余剰と選択 -->
+    <div class="section">
+      <h2 class="section-title">余剰米の処理</h2>
+      <div class="finance-table">
+        <div class="finance-row">
+          <span class="label">今月の余剰</span>
+          <span class="value gold">+0.75石</span>
+        </div>
+        <div class="finance-row">
+          <span class="label">現在の米</span>
+          <span class="value">1.95石</span>
+        </div>
+      </div>
+
+      <div class="choice-section">
+        <div class="choice-title">余剰米の使い道を選んでください</div>
+        <div class="choice-buttons">
+          <div class="choice-btn">
+            <div class="main">全て売却</div>
+            <div class="sub">+0.75貫</div>
+          </div>
+          <div class="choice-btn">
+            <div class="main">半分売却</div>
+            <div class="sub">+0.38貫</div>
+          </div>
+          <div class="choice-btn selected">
+            <div class="main">売却しない</div>
+            <div class="sub">備蓄</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 借金返済（借金がある場合のみ表示） -->
+    <!--
+    <div class="section">
+      <h2 class="section-title">借金返済</h2>
+      <div class="debt-section">
+        <div class="debt-header">
+          <span class="label">現在の借金</span>
+          <span class="value">40.0貫 / 上限: 50.0貫</span>
+        </div>
+        <div class="debt-header">
+          <span class="label">所持金</span>
+          <span class="value" style="color: #CCCCCC;">8.5貫</span>
+        </div>
+      </div>
+      <div class="choice-section">
+        <div class="choice-buttons">
+          <div class="choice-btn">
+            <div class="main">全額返済</div>
+            <div class="sub">-8.5貫</div>
+          </div>
+          <div class="choice-btn">
+            <div class="main">半分返済</div>
+            <div class="sub">-4.25貫</div>
+          </div>
+          <div class="choice-btn">
+            <div class="main">少額返済</div>
+            <div class="sub">-1.0貫</div>
+          </div>
+          <div class="choice-btn selected">
+            <div class="main">返済しない</div>
+            <div class="sub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    -->
+
+    <!-- 評定 -->
+    <div class="section">
+      <h2 class="section-title">評定</h2>
+      <div class="evaluation">
+        <div class="speaker">加藤小頭</div>
+        <div class="message">
+          「新九郎、今月もよく励んでおる。このまま功績を積めば、馬上衆への道も開けよう。精進せよ。」
+        </div>
+      </div>
+    </div>
+
+    <!-- ライバル比較 -->
+    <div class="section">
+      <h2 class="section-title">ライバルとの比較</h2>
+      <div class="rival-section">
+        <div class="rival-card">
+          <div class="name">あなた</div>
+          <div class="merit gold">125</div>
+          <div class="rank">徒士</div>
+        </div>
+        <div class="rival-card">
+          <div class="name">源三郎</div>
+          <div class="merit">110</div>
+          <div class="rank">徒士</div>
+        </div>
+      </div>
+      <div class="rival-comparison">
+        <div class="diff positive">+15</div>
+        <div class="message">あなたがやや優勢</div>
+      </div>
+    </div>
+
+    <!-- 続けるボタン -->
+    <button class="continue-btn">次の月へ</button>
+  </div>
+</body>
+</html>

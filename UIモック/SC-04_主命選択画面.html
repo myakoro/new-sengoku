@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SC-04 主命選択画面 - 戦国立身出世SLG</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "游ゴシック", "Yu Gothic", "メイリオ", Meiryo, sans-serif;
+      background-color: #2C2C2C;
+      color: #ffffff;
+      min-height: 100vh;
+      padding: 40px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* ヘッダー */
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      color: #D4AF37;
+      margin-bottom: 8px;
+    }
+
+    .header .week {
+      font-size: 14px;
+      color: #CCCCCC;
+    }
+
+    /* カテゴリセクション */
+    .category {
+      margin-bottom: 32px;
+    }
+
+    .category-title {
+      font-size: 16px;
+      color: #D4AF37;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #555555;
+    }
+
+    /* 主命グリッド */
+    .command-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    /* 主命カード */
+    .command-card {
+      background-color: #3a3a3a;
+      border: 2px solid #555555;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .command-card:hover {
+      border-color: #D4AF37;
+      background-color: #444444;
+    }
+
+    .command-card.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .command-card.disabled:hover {
+      border-color: #555555;
+      background-color: #3a3a3a;
+    }
+
+    .command-name {
+      font-size: 18px;
+      font-weight: bold;
+      color: #ffffff;
+      margin-bottom: 12px;
+    }
+
+    .command-details {
+      font-size: 12px;
+      color: #CCCCCC;
+      line-height: 1.6;
+    }
+
+    .command-details .row {
+      display: flex;
+      justify-content: space-between;
+      padding: 2px 0;
+    }
+
+    .command-details .label {
+      color: #888888;
+    }
+
+    .command-details .value {
+      font-family: Consolas, Monaco, monospace;
+    }
+
+    .command-details .value.merit {
+      color: #D4AF37;
+    }
+
+    .command-details .value.risk {
+      color: #C62828;
+    }
+
+    .command-details .value.safe {
+      color: #2E7D32;
+    }
+
+    /* 期間タグ */
+    .duration-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      font-size: 11px;
+      border-radius: 2px;
+      margin-bottom: 8px;
+    }
+
+    .duration-tag.short {
+      background-color: #2E7D32;
+      color: #ffffff;
+    }
+
+    .duration-tag.long {
+      background-color: #1976D2;
+      color: #ffffff;
+    }
+
+    /* 制限タグ */
+    .restriction-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      font-size: 11px;
+      background-color: #C62828;
+      color: #ffffff;
+      border-radius: 2px;
+      margin-left: 4px;
+    }
+
+    /* 戻るボタン */
+    .back-button {
+      display: block;
+      width: 200px;
+      margin: 32px auto 0;
+      padding: 12px 24px;
+      font-size: 14px;
+      text-align: center;
+      border: 1px solid #555555;
+      background-color: transparent;
+      color: #CCCCCC;
+      cursor: pointer;
+    }
+
+    .back-button:hover {
+      background-color: #555555;
+    }
+
+    /* 説明エリア */
+    .info-box {
+      background-color: #3a3a3a;
+      border: 1px solid #555555;
+      padding: 16px;
+      margin-bottom: 24px;
+      font-size: 13px;
+      color: #CCCCCC;
+    }
+
+    .info-box .title {
+      color: #D4AF37;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- ヘッダー -->
+    <div class="header">
+      <h1>主命選択</h1>
+      <p class="week">1575年3月2週目</p>
+    </div>
+
+    <!-- 説明 -->
+    <div class="info-box">
+      <div class="title">主命について</div>
+      <p>主命を選択して功績を稼ぎましょう。盗賊討伐は複数週かかりますが、成功すれば大きな功績が得られます。</p>
+    </div>
+
+    <!-- 安全系（1週間） -->
+    <div class="category">
+      <h2 class="category-title">安全系（1週間で完了）</h2>
+      <div class="command-grid">
+        <!-- 訓練 -->
+        <div class="command-card">
+          <span class="duration-tag short">1週間</span>
+          <div class="command-name">訓練</div>
+          <div class="command-details">
+            <div class="row">
+              <span class="label">功績</span>
+              <span class="value merit">+5</span>
+            </div>
+            <div class="row">
+              <span class="label">効果</span>
+              <span class="value">武芸経験+10</span>
+            </div>
+            <div class="row">
+              <span class="label">リスク</span>
+              <span class="value safe">なし</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 巡察 -->
+        <div class="command-card">
+          <span class="duration-tag short">1週間</span>
+          <div class="command-name">巡察</div>
+          <div class="command-details">
+            <div class="row">
+              <span class="label">功績</span>
+              <span class="value merit">+3</span>
+            </div>
+            <div class="row">
+              <span class="label">効果</span>
+              <span class="value">10%で盗賊遭遇</span>
+            </div>
+            <div class="row">
+              <span class="label">リスク</span>
+              <span class="value safe">なし</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 情報収集 -->
+        <div class="command-card">
+          <span class="duration-tag short">1週間</span>
+          <div class="command-name">情報収集</div>
+          <div class="command-details">
+            <div class="row">
+              <span class="label">功績</span>
+              <span class="value merit">+12</span>
+            </div>
+            <div class="row">
+              <span class="label">効果</span>
+              <span class="value">知略経験+10、金+0.1貫</span>
+            </div>
+            <div class="row">
+              <span class="label">リスク</span>
+              <span class="value safe">なし</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 戦闘系（1週間） -->
+    <div class="category">
+      <h2 class="category-title">戦闘系（1週間で完了）</h2>
+      <div class="command-grid">
+        <!-- 護衛任務 -->
+        <div class="command-card">
+          <span class="duration-tag short">1週間</span>
+          <div class="command-name">護衛任務</div>
+          <div class="command-details">
+            <div class="row">
+              <span class="label">功績</span>
+              <span class="value merit">+8</span>
+            </div>
+            <div class="row">
+              <span class="label">効果</span>
+              <span class="value">10%で襲撃（+8）</span>
+            </div>
+            <div class="row">
+              <span class="label">リスク</span>
+              <span class="value risk">戦闘あり</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 盗賊討伐 -->
+    <div class="category">
+      <h2 class="category-title">盗賊討伐</h2>
+      <div class="command-grid">
+        <!-- 盗賊討伐（小規模） -->
+        <div class="command-card">
+          <span class="duration-tag long">2週間</span>
+          <div class="command-name">盗賊討伐（小規模）</div>
+          <div class="command-details">
+            <div class="row">
+              <span class="label">功績</span>
+              <span class="value merit">+15</span>
+            </div>
+            <div class="row">
+              <span class="label">敵戦力</span>
+              <span class="value">1〜2名</span>
+            </div>
+            <div class="row">
+              <span class="label">難易度</span>
+              <span class="value safe">易しい</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 盗賊討伐（中規模） -->
+        <div class="command-card">
+          <span class="duration-tag long">4週間</span>
+          <div class="command-name">盗賊討伐（中規模）</div>
+          <div class="command-details">
+            <div class="row">
+              <span class="label">功績</span>
+              <span class="value merit">+30</span>
+            </div>
+            <div class="row">
+              <span class="label">敵戦力</span>
+              <span class="value">3〜5名</span>
+            </div>
+            <div class="row">
+              <span class="label">難易度</span>
+              <span class="value">普通</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 盗賊討伐（大規模）（馬上衆以上） -->
+        <div class="command-card disabled">
+          <span class="duration-tag long">4週間</span>
+          <span class="restriction-tag">馬上衆以上</span>
+          <div class="command-name">盗賊討伐（大規模）</div>
+          <div class="command-details">
+            <div class="row">
+              <span class="label">功績</span>
+              <span class="value merit">+40</span>
+            </div>
+            <div class="row">
+              <span class="label">敵戦力</span>
+              <span class="value">6〜10名</span>
+            </div>
+            <div class="row">
+              <span class="label">難易度</span>
+              <span class="value risk">難しい</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 盗賊討伐（討伐戦）（馬上衆以上） -->
+        <div class="command-card disabled">
+          <span class="duration-tag long">4週間</span>
+          <span class="restriction-tag">馬上衆以上</span>
+          <div class="command-name">盗賊討伐（討伐戦）</div>
+          <div class="command-details">
+            <div class="row">
+              <span class="label">功績</span>
+              <span class="value merit">+60</span>
+            </div>
+            <div class="row">
+              <span class="label">敵戦力</span>
+              <span class="value">11〜15名</span>
+            </div>
+            <div class="row">
+              <span class="label">難易度</span>
+              <span class="value risk">非常に難しい</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 戻るボタン -->
+    <button class="back-button">戻る</button>
+  </div>
+</body>
+</html>

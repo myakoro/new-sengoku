@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SC-01 タイトル画面 - 戦国立身出世SLG</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "游ゴシック", "Yu Gothic", "メイリオ", Meiryo, sans-serif;
+      background-color: #1a1a1a;
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      text-align: center;
+      padding: 40px;
+    }
+
+    /* タイトルロゴ */
+    .title-logo {
+      margin-bottom: 60px;
+    }
+
+    .title-main {
+      font-size: 48px;
+      font-weight: bold;
+      color: #D4AF37;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+      letter-spacing: 8px;
+      margin-bottom: 16px;
+    }
+
+    .title-sub {
+      font-size: 18px;
+      color: #CCCCCC;
+      letter-spacing: 4px;
+    }
+
+    /* メニューボタン */
+    .menu {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 60px;
+    }
+
+    .menu-button {
+      width: 280px;
+      padding: 16px 32px;
+      font-size: 18px;
+      font-weight: bold;
+      border: 2px solid #D4AF37;
+      background-color: transparent;
+      color: #D4AF37;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      letter-spacing: 2px;
+    }
+
+    .menu-button:hover {
+      background-color: #D4AF37;
+      color: #1a1a1a;
+    }
+
+    .menu-button:disabled {
+      border-color: #555555;
+      color: #555555;
+      cursor: not-allowed;
+    }
+
+    .menu-button:disabled:hover {
+      background-color: transparent;
+      color: #555555;
+    }
+
+    /* バージョン情報 */
+    .version {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      font-size: 12px;
+      color: #666666;
+    }
+
+    /* コピーライト */
+    .copyright {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      font-size: 12px;
+      color: #666666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- タイトルロゴ -->
+    <div class="title-logo">
+      <h1 class="title-main">戦国立身出世</h1>
+      <p class="title-sub">― 身一つから始まる、戦国の階段 ―</p>
+    </div>
+
+    <!-- メニュー -->
+    <div class="menu">
+      <button class="menu-button">新規ゲーム</button>
+      <button class="menu-button" disabled>続きから</button>
+      <button class="menu-button" disabled>設定</button>
+    </div>
+  </div>
+
+  <!-- バージョン情報 -->
+  <div class="version">Version 0.1</div>
+
+  <!-- コピーライト -->
+  <div class="copyright">© 2025</div>
+</body>
+</html>

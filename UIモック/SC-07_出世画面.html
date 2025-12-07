@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SC-07 出世画面 - 戦国立身出世SLG</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "游ゴシック", "Yu Gothic", "メイリオ", Meiryo, sans-serif;
+      background-color: #1a1a1a;
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+    }
+
+    .container {
+      max-width: 600px;
+      width: 100%;
+      text-align: center;
+    }
+
+    /* 祝いの演出 */
+    .celebration {
+      margin-bottom: 32px;
+    }
+
+    .celebration-text {
+      font-size: 18px;
+      color: #D4AF37;
+      letter-spacing: 8px;
+      margin-bottom: 16px;
+    }
+
+    /* メインタイトル */
+    .promotion-title {
+      font-size: 48px;
+      font-weight: bold;
+      color: #D4AF37;
+      text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+      margin-bottom: 8px;
+    }
+
+    .promotion-subtitle {
+      font-size: 16px;
+      color: #CCCCCC;
+      margin-bottom: 48px;
+    }
+
+    /* 昇進パネル */
+    .promotion-panel {
+      background-color: #2C2C2C;
+      border: 2px solid #D4AF37;
+      padding: 32px;
+      margin-bottom: 32px;
+    }
+
+    /* 役職変化 */
+    .rank-change {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    .rank-box {
+      padding: 16px 32px;
+      background-color: #3a3a3a;
+      border: 1px solid #555555;
+    }
+
+    .rank-box .label {
+      font-size: 12px;
+      color: #888888;
+      margin-bottom: 4px;
+    }
+
+    .rank-box .rank {
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .rank-box .rank.old {
+      color: #888888;
+    }
+
+    .rank-box .rank.new {
+      color: #D4AF37;
+    }
+
+    .rank-arrow {
+      font-size: 32px;
+      color: #D4AF37;
+    }
+
+    /* ステータス成長 */
+    .stats-growth {
+      margin-bottom: 24px;
+    }
+
+    .stats-growth-title {
+      font-size: 14px;
+      color: #888888;
+      margin-bottom: 16px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .stat-item {
+      background-color: #3a3a3a;
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .stat-item .name {
+      font-size: 13px;
+      color: #CCCCCC;
+    }
+
+    .stat-item .change {
+      font-family: Consolas, Monaco, monospace;
+      font-size: 14px;
+    }
+
+    .stat-item .change .up {
+      color: #2E7D32;
+    }
+
+    /* 新しい権限 */
+    .new-permissions {
+      background-color: #3a3a3a;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+
+    .new-permissions-title {
+      font-size: 14px;
+      color: #D4AF37;
+      margin-bottom: 12px;
+    }
+
+    .permission-list {
+      text-align: left;
+    }
+
+    .permission-item {
+      padding: 8px 0;
+      font-size: 14px;
+      color: #CCCCCC;
+      border-bottom: 1px solid #444444;
+    }
+
+    .permission-item:last-child {
+      border-bottom: none;
+    }
+
+    .permission-item::before {
+      content: "✓ ";
+      color: #2E7D32;
+    }
+
+    /* 推奨アクション */
+    .recommendation {
+      background-color: #2C2C2C;
+      border: 1px solid #555555;
+      padding: 16px;
+      margin-bottom: 24px;
+      text-align: left;
+    }
+
+    .recommendation-title {
+      font-size: 14px;
+      color: #D4AF37;
+      margin-bottom: 8px;
+    }
+
+    .recommendation-text {
+      font-size: 13px;
+      color: #CCCCCC;
+      line-height: 1.6;
+    }
+
+    .recommendation-text .cost {
+      color: #C62828;
+    }
+
+    /* 扶持米変化 */
+    .salary-change {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      background-color: #3a3a3a;
+      margin-bottom: 24px;
+    }
+
+    .salary-change .label {
+      font-size: 14px;
+      color: #CCCCCC;
+    }
+
+    .salary-change .value {
+      font-size: 18px;
+      font-family: Consolas, Monaco, monospace;
+    }
+
+    .salary-change .value.old {
+      color: #888888;
+      text-decoration: line-through;
+    }
+
+    .salary-change .value.new {
+      color: #2E7D32;
+    }
+
+    .salary-change .arrow {
+      color: #D4AF37;
+    }
+
+    /* 続けるボタン */
+    .continue-btn {
+      width: 100%;
+      padding: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      border: 2px solid #D4AF37;
+      background-color: #D4AF37;
+      color: #1a1a1a;
+      cursor: pointer;
+    }
+
+    .continue-btn:hover {
+      background-color: #c9a432;
+    }
+
+    /* メッセージ */
+    .message {
+      font-size: 14px;
+      color: #CCCCCC;
+      line-height: 1.8;
+      padding: 16px;
+      background-color: #3a3a3a;
+      border-left: 3px solid #D4AF37;
+      text-align: left;
+      margin-bottom: 24px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 祝いの演出 -->
+    <div class="celebration">
+      <div class="celebration-text">― 祝 ―</div>
+    </div>
+
+    <!-- メインタイトル -->
+    <h1 class="promotion-title">昇進</h1>
+    <p class="promotion-subtitle">1575年5月 月次評定にて</p>
+
+    <!-- 昇進パネル -->
+    <div class="promotion-panel">
+      <!-- 役職変化 -->
+      <div class="rank-change">
+        <div class="rank-box">
+          <div class="label">旧役職</div>
+          <div class="rank old">徒士</div>
+        </div>
+        <div class="rank-arrow">→</div>
+        <div class="rank-box">
+          <div class="label">新役職</div>
+          <div class="rank new">馬上衆</div>
+        </div>
+      </div>
+
+      <!-- 扶持米変化 -->
+      <div class="salary-change">
+        <span class="label">扶持米</span>
+        <span class="value old">月1.8石</span>
+        <span class="arrow">→</span>
+        <span class="value new">月3.5石</span>
+      </div>
+
+      <!-- 新しい権限 -->
+      <div class="new-permissions">
+        <div class="new-permissions-title">新たに得た権限</div>
+        <div class="permission-list">
+          <div class="permission-item">馬の購入が可能に</div>
+          <div class="permission-item">盗賊討伐（大規模）/（討伐戦）に参加可能</div>
+          <div class="permission-item">徒士の雇用が可能に</div>
+        </div>
+      </div>
+
+      <!-- 推奨アクション -->
+      <div class="recommendation">
+        <div class="recommendation-title">推奨</div>
+        <div class="recommendation-text">
+          馬上衆として活躍するには、馬の購入（<span class="cost">30貫</span>）と
+          徒士の雇用（<span class="cost">10貫</span>）が推奨されます。
+          借金をしてでも戦力を整えましょう。
+        </div>
+      </div>
+
+      <!-- メッセージ -->
+      <div class="message">
+        「新九郎、よくぞここまで参った。これより馬上衆として、より大きな功を立てよ。期待しておるぞ。」
+        <br>― 加藤小頭
+      </div>
+    </div>
+
+    <!-- 続けるボタン -->
+    <button class="continue-btn">新たな道へ</button>
+  </div>
+</body>
+</html>

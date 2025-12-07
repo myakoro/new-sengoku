@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SC-02 キャラメイク画面 - 戦国立身出世SLG</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "游ゴシック", "Yu Gothic", "メイリオ", Meiryo, sans-serif;
+      background-color: #2C2C2C;
+      color: #ffffff;
+      min-height: 100vh;
+      padding: 40px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    /* ヘッダー */
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      color: #D4AF37;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      font-size: 14px;
+      color: #CCCCCC;
+    }
+
+    /* セクション共通 */
+    .section {
+      background-color: #3a3a3a;
+      border: 1px solid #555555;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      color: #D4AF37;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #555555;
+    }
+
+    /* 名前入力 */
+    .name-input {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .name-input label {
+      font-size: 14px;
+      color: #CCCCCC;
+    }
+
+    .name-input input {
+      flex: 1;
+      padding: 12px 16px;
+      font-size: 16px;
+      background-color: #2C2C2C;
+      border: 1px solid #555555;
+      color: #ffffff;
+    }
+
+    /* ステータス配分 */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .stat-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .stat-name {
+      width: 60px;
+      font-size: 14px;
+      color: #CCCCCC;
+    }
+
+    .stat-bar-container {
+      flex: 1;
+      height: 24px;
+      background-color: #2C2C2C;
+      border: 1px solid #555555;
+      position: relative;
+    }
+
+    .stat-bar {
+      height: 100%;
+      background-color: #D4AF37;
+    }
+
+    .stat-value {
+      width: 40px;
+      text-align: right;
+      font-family: Consolas, Monaco, monospace;
+      font-size: 14px;
+    }
+
+    .stat-buttons {
+      display: flex;
+      gap: 4px;
+    }
+
+    .stat-btn {
+      width: 28px;
+      height: 28px;
+      font-size: 16px;
+      font-weight: bold;
+      border: 1px solid #555555;
+      background-color: #2C2C2C;
+      color: #ffffff;
+      cursor: pointer;
+    }
+
+    .stat-btn:hover {
+      background-color: #555555;
+    }
+
+    /* 残りポイント */
+    .remaining-points {
+      text-align: center;
+      margin-top: 16px;
+      padding: 12px;
+      background-color: #2C2C2C;
+      border: 1px solid #555555;
+    }
+
+    .remaining-points span {
+      font-size: 24px;
+      font-weight: bold;
+      color: #D4AF37;
+      font-family: Consolas, Monaco, monospace;
+    }
+
+    /* 従僕情報 */
+    .juuboku-list {
+      display: flex;
+      gap: 16px;
+    }
+
+    .juuboku-card {
+      flex: 1;
+      padding: 16px;
+      background-color: #2C2C2C;
+      border: 1px solid #555555;
+      text-align: center;
+    }
+
+    .juuboku-card .label {
+      font-size: 12px;
+      color: #888888;
+      margin-bottom: 4px;
+    }
+
+    .juuboku-card .value {
+      font-size: 18px;
+      font-family: Consolas, Monaco, monospace;
+    }
+
+    /* ボタンエリア */
+    .button-area {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 32px;
+    }
+
+    .btn {
+      padding: 16px 48px;
+      font-size: 16px;
+      font-weight: bold;
+      border: 2px solid;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      border-color: #D4AF37;
+      background-color: #D4AF37;
+      color: #1a1a1a;
+    }
+
+    .btn-primary:hover {
+      background-color: #c9a432;
+    }
+
+    .btn-secondary {
+      border-color: #555555;
+      background-color: transparent;
+      color: #CCCCCC;
+    }
+
+    .btn-secondary:hover {
+      background-color: #555555;
+    }
+
+    /* 初期状態表示 */
+    .initial-state {
+      margin-top: 16px;
+      padding: 12px;
+      background-color: #2C2C2C;
+      border: 1px solid #555555;
+      font-size: 13px;
+      color: #888888;
+    }
+
+    .initial-state-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- ヘッダー -->
+    <div class="header">
+      <h1>キャラクター作成</h1>
+      <p>才能の上限を決めてください</p>
+    </div>
+
+    <!-- 名前入力 -->
+    <div class="section">
+      <h2 class="section-title">名前</h2>
+      <div class="name-input">
+        <label>主人公の名前：</label>
+        <input type="text" value="新九郎" placeholder="名前を入力">
+      </div>
+    </div>
+
+    <!-- ステータス配分 -->
+    <div class="section">
+      <h2 class="section-title">才能配分（上限値）</h2>
+      <div class="stats-grid">
+        <!-- 武芸 -->
+        <div class="stat-row">
+          <span class="stat-name">武芸</span>
+          <div class="stat-bar-container">
+            <div class="stat-bar" style="width: 65%;"></div>
+          </div>
+          <span class="stat-value">65</span>
+          <div class="stat-buttons">
+            <button class="stat-btn">-</button>
+            <button class="stat-btn">+</button>
+          </div>
+        </div>
+
+        <!-- 統率 -->
+        <div class="stat-row">
+          <span class="stat-name">統率</span>
+          <div class="stat-bar-container">
+            <div class="stat-bar" style="width: 50%;"></div>
+          </div>
+          <span class="stat-value">50</span>
+          <div class="stat-buttons">
+            <button class="stat-btn">-</button>
+            <button class="stat-btn">+</button>
+          </div>
+        </div>
+
+        <!-- 知略 -->
+        <div class="stat-row">
+          <span class="stat-name">知略</span>
+          <div class="stat-bar-container">
+            <div class="stat-bar" style="width: 65%;"></div>
+          </div>
+          <span class="stat-value">65</span>
+          <div class="stat-buttons">
+            <button class="stat-btn">-</button>
+            <button class="stat-btn">+</button>
+          </div>
+        </div>
+
+        <!-- 政務 -->
+        <div class="stat-row">
+          <span class="stat-name">政務</span>
+          <div class="stat-bar-container">
+            <div class="stat-bar" style="width: 70%;"></div>
+          </div>
+          <span class="stat-value">70</span>
+          <div class="stat-buttons">
+            <button class="stat-btn">-</button>
+            <button class="stat-btn">+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 残りポイント -->
+      <div class="remaining-points">
+        残りポイント: <span>50</span> / 合計: 300
+      </div>
+    </div>
+
+    <!-- 従僕情報 -->
+    <div class="section">
+      <h2 class="section-title">従僕（3名）</h2>
+      <p style="font-size: 12px; color: #888888; margin-bottom: 12px;">※武芸は40〜60のランダム</p>
+      <div class="juuboku-list">
+        <div class="juuboku-card">
+          <div class="label">従僕1 武芸</div>
+          <div class="value">48</div>
+        </div>
+        <div class="juuboku-card">
+          <div class="label">従僕2 武芸</div>
+          <div class="value">53</div>
+        </div>
+        <div class="juuboku-card">
+          <div class="label">従僕3 武芸</div>
+          <div class="value">45</div>
+        </div>
+      </div>
+      <div style="text-align: center; margin-top: 12px;">
+        <button class="btn btn-secondary" style="padding: 8px 24px; font-size: 14px;">従僕を振り直し</button>
+      </div>
+    </div>
+
+    <!-- 初期状態 -->
+    <div class="section">
+      <h2 class="section-title">初期状態</h2>
+      <div class="initial-state">
+        <div class="initial-state-row">
+          <span>役職</span>
+          <span>徒士</span>
+        </div>
+        <div class="initial-state-row">
+          <span>扶持米</span>
+          <span>月1.8石</span>
+        </div>
+        <div class="initial-state-row">
+          <span>初期米</span>
+          <span>0.5石</span>
+        </div>
+        <div class="initial-state-row">
+          <span>初期金</span>
+          <span>10貫</span>
+        </div>
+        <div class="initial-state-row">
+          <span>開始</span>
+          <span>1575年1月1週目</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ボタンエリア -->
+    <div class="button-area">
+      <button class="btn btn-secondary">才能を振り直し</button>
+      <button class="btn btn-primary">決定</button>
+    </div>
+  </div>
+</body>
+</html>

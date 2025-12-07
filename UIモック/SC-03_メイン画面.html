@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SC-03 メイン画面 - 戦国立身出世SLG</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "游ゴシック", "Yu Gothic", "メイリオ", Meiryo, sans-serif;
+      background-color: #2C2C2C;
+      color: #ffffff;
+      min-height: 100vh;
+    }
+
+    /* ヘッダー */
+    .header {
+      background-color: #1a1a1a;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #D4AF37;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .week-display {
+      font-size: 18px;
+      color: #D4AF37;
+      font-weight: bold;
+    }
+
+    .rank-display {
+      font-size: 14px;
+      color: #CCCCCC;
+    }
+
+    .rank-display span {
+      color: #D4AF37;
+      font-weight: bold;
+    }
+
+    .header-right {
+      display: flex;
+      gap: 16px;
+    }
+
+    .header-btn {
+      padding: 8px 16px;
+      font-size: 12px;
+      border: 1px solid #555555;
+      background-color: transparent;
+      color: #CCCCCC;
+      cursor: pointer;
+    }
+
+    .header-btn:hover {
+      background-color: #555555;
+    }
+
+    /* メインコンテンツ */
+    .main-content {
+      display: grid;
+      grid-template-columns: 280px 1fr 280px;
+      gap: 24px;
+      padding: 24px;
+      min-height: calc(100vh - 60px);
+    }
+
+    /* 左サイドバー - プレイヤー情報 */
+    .sidebar-left {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .panel {
+      background-color: #3a3a3a;
+      border: 1px solid #555555;
+      padding: 16px;
+    }
+
+    .panel-title {
+      font-size: 14px;
+      color: #D4AF37;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #555555;
+    }
+
+    /* ステータス表示 */
+    .stat-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+    }
+
+    .stat-item .label {
+      color: #CCCCCC;
+    }
+
+    .stat-item .value {
+      font-family: Consolas, Monaco, monospace;
+    }
+
+    .stat-item .value.gold {
+      color: #D4AF37;
+    }
+
+    .stat-item .value.red {
+      color: #C62828;
+    }
+
+    .stat-item .value.green {
+      color: #2E7D32;
+    }
+
+    /* 功績バー */
+    .merit-section {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #555555;
+    }
+
+    .merit-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #888888;
+      margin-bottom: 4px;
+    }
+
+    .merit-bar-container {
+      height: 20px;
+      background-color: #2C2C2C;
+      border: 1px solid #555555;
+    }
+
+    .merit-bar {
+      height: 100%;
+      background-color: #D4AF37;
+      width: 48%;
+    }
+
+    .merit-value {
+      text-align: center;
+      font-size: 14px;
+      margin-top: 4px;
+      font-family: Consolas, Monaco, monospace;
+    }
+
+    /* 中央エリア */
+    .center-area {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* 今週の行動エリア */
+    .action-panel {
+      background-color: #3a3a3a;
+      border: 2px solid #D4AF37;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .action-panel h2 {
+      font-size: 18px;
+      color: #D4AF37;
+      margin-bottom: 16px;
+    }
+
+    .action-btn {
+      width: 100%;
+      padding: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      border: 2px solid #D4AF37;
+      background-color: #D4AF37;
+      color: #1a1a1a;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .action-btn:hover {
+      background-color: #c9a432;
+    }
+
+    /* ログエリア */
+    .log-panel {
+      flex: 1;
+      background-color: #3a3a3a;
+      border: 1px solid #555555;
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    .log-panel h3 {
+      font-size: 14px;
+      color: #D4AF37;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #555555;
+    }
+
+    .log-list {
+      font-size: 13px;
+      line-height: 1.8;
+      color: #CCCCCC;
+    }
+
+    .log-item {
+      padding: 4px 0;
+      border-bottom: 1px solid #444444;
+    }
+
+    .log-item .week {
+      color: #888888;
+      font-size: 11px;
+    }
+
+    .log-item.success {
+      color: #2E7D32;
+    }
+
+    .log-item.warning {
+      color: #C62828;
+    }
+
+    /* 右サイドバー - ライバル情報 */
+    .sidebar-right {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .rival-comparison {
+      text-align: center;
+      padding: 12px;
+      background-color: #2C2C2C;
+      margin-top: 8px;
+    }
+
+    .rival-comparison .diff {
+      font-size: 18px;
+      font-weight: bold;
+      font-family: Consolas, Monaco, monospace;
+    }
+
+    .rival-comparison .diff.positive {
+      color: #2E7D32;
+    }
+
+    .rival-comparison .diff.negative {
+      color: #C62828;
+    }
+
+    .rival-comparison .message {
+      font-size: 12px;
+      color: #888888;
+      margin-top: 4px;
+    }
+
+    /* 家臣情報 */
+    .retainer-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .retainer-item {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      padding: 4px 0;
+    }
+
+    .retainer-item .type {
+      color: #CCCCCC;
+    }
+
+    .retainer-item .count {
+      font-family: Consolas, Monaco, monospace;
+    }
+  </style>
+</head>
+<body>
+  <!-- ヘッダー -->
+  <header class="header">
+    <div class="header-left">
+      <div class="week-display">1575年3月2週目</div>
+      <div class="rank-display">役職: <span>徒士</span></div>
+    </div>
+    <div class="header-right">
+      <button class="header-btn">セーブ</button>
+      <button class="header-btn">ロード</button>
+      <button class="header-btn">設定</button>
+    </div>
+  </header>
+
+  <!-- メインコンテンツ -->
+  <div class="main-content">
+    <!-- 左サイドバー - プレイヤー情報 -->
+    <aside class="sidebar-left">
+      <!-- ステータス -->
+      <div class="panel">
+        <h3 class="panel-title">新九郎</h3>
+        <div class="stat-list">
+          <div class="stat-item">
+            <span class="label">武芸</span>
+            <span class="value">52</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">統率</span>
+            <span class="value">40</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">知略</span>
+            <span class="value">52</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">政務</span>
+            <span class="value">56</span>
+          </div>
+        </div>
+
+        <!-- 功績 -->
+        <div class="merit-section">
+          <div class="merit-label">
+            <span>功績</span>
+            <span>次の昇進: 250</span>
+          </div>
+          <div class="merit-bar-container">
+            <div class="merit-bar"></div>
+          </div>
+          <div class="merit-value">120 / 250</div>
+        </div>
+      </div>
+
+      <!-- 経済 -->
+      <div class="panel">
+        <h3 class="panel-title">経済</h3>
+        <div class="stat-list">
+          <div class="stat-item">
+            <span class="label">米</span>
+            <span class="value">1.2石</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">借金</span>
+            <span class="value red">0貫</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 家臣 -->
+      <div class="panel">
+        <h3 class="panel-title">家臣</h3>
+        <div class="retainer-list">
+          <div class="retainer-item">
+            <span class="type">従僕</span>
+            <span class="count">3名</span>
+          </div>
+          <div class="retainer-item">
+            <span class="type">徒士</span>
+            <span class="count">0名</span>
+          </div>
+          <div class="retainer-item">
+            <span class="type">馬上衆</span>
+            <span class="count">0名</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 中央エリア -->
+    <main class="center-area">
+      <!-- 今週の行動 -->
+      <div class="action-panel">
+        <h2>今週の行動</h2>
+        <button class="action-btn">主命を選択する</button>
+      </div>
+
+      <!-- ログ -->
+      <div class="log-panel">
+        <h3>行動ログ</h3>
+        <div class="log-list">
+          <div class="log-item success">
+            <span class="week">[3月1週]</span> 訓練を行った。功績+5
+          </div>
+          <div class="log-item">
+            <span class="week">[2月4週]</span> 巡察を行った。功績+3
+          </div>
+          <div class="log-item success">
+            <span class="week">[2月3週]</span> 盗賊討伐Sに成功。功績+8
+          </div>
+          <div class="log-item">
+            <span class="week">[2月2週]</span> 情報収集を行った。功績+12、金+0.1貫
+          </div>
+          <div class="log-item">
+            <span class="week">[2月1週]</span> 訓練を行った。功績+5
+          </div>
+          <div class="log-item warning">
+            <span class="week">[1月4週]</span> 【月次】扶持米+1.8石、支出-1.05石
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- 右サイドバー - ライバル情報 -->
+    <aside class="sidebar-right">
+      <div class="panel">
+        <h3 class="panel-title">ライバル</h3>
+        <div class="stat-list">
+          <div class="stat-item">
+            <span class="label">名前</span>
+            <span class="value">源三郎</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">役職</span>
+            <span class="value gold">徒士</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">功績</span>
+            <span class="value">105</span>
+          </div>
+        </div>
+
+        <!-- 比較 -->
+        <div class="rival-comparison">
+          <div class="diff positive">+15</div>
+          <div class="message">あなたがやや優勢</div>
+        </div>
+      </div>
+
+      <!-- 次の昇進条件 -->
+      <div class="panel">
+        <h3 class="panel-title">次の昇進</h3>
+        <div class="stat-list">
+          <div class="stat-item">
+            <span class="label">目標役職</span>
+            <span class="value gold">馬上衆</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">必要功績</span>
+            <span class="value">250</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">必要武芸</span>
+            <span class="value">40</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">あと</span>
+            <span class="value gold">130</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>

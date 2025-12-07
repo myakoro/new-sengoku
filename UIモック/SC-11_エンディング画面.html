@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SC-11 エンディング画面 - 戦国立身出世SLG</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "游ゴシック", "Yu Gothic", "メイリオ", Meiryo, sans-serif;
+      background-color: #1a1a1a;
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+    }
+
+    .container {
+      max-width: 700px;
+      width: 100%;
+      text-align: center;
+    }
+
+    /* エンディングタイトル */
+    .ending-header {
+      margin-bottom: 48px;
+    }
+
+    .ending-label {
+      font-size: 16px;
+      color: #888888;
+      letter-spacing: 8px;
+      margin-bottom: 16px;
+    }
+
+    .ending-title {
+      font-size: 42px;
+      font-weight: bold;
+      color: #D4AF37;
+      text-shadow: 0 0 30px rgba(212, 175, 55, 0.5);
+      margin-bottom: 8px;
+    }
+
+    .ending-subtitle {
+      font-size: 18px;
+      color: #CCCCCC;
+    }
+
+    /* 評価 */
+    .evaluation {
+      background-color: #2C2C2C;
+      border: 2px solid #D4AF37;
+      padding: 32px;
+      margin-bottom: 32px;
+    }
+
+    .evaluation-rank {
+      font-size: 64px;
+      font-weight: bold;
+      color: #D4AF37;
+      margin-bottom: 8px;
+    }
+
+    .evaluation-title {
+      font-size: 24px;
+      color: #CCCCCC;
+      margin-bottom: 24px;
+    }
+
+    .evaluation-message {
+      font-size: 14px;
+      color: #CCCCCC;
+      line-height: 2;
+      padding: 16px;
+      background-color: #3a3a3a;
+      text-align: left;
+    }
+
+    /* 統計 */
+    .stats-panel {
+      background-color: #2C2C2C;
+      border: 1px solid #555555;
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+
+    .stats-title {
+      font-size: 16px;
+      color: #D4AF37;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #555555;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .stat-item {
+      background-color: #3a3a3a;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .stat-item .label {
+      font-size: 12px;
+      color: #888888;
+      margin-bottom: 8px;
+    }
+
+    .stat-item .value {
+      font-size: 24px;
+      font-family: Consolas, Monaco, monospace;
+      color: #D4AF37;
+    }
+
+    .stat-item .value.small {
+      font-size: 18px;
+    }
+
+    /* 最終ステータス */
+    .final-status {
+      background-color: #2C2C2C;
+      border: 1px solid #555555;
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+
+    .final-status-title {
+      font-size: 16px;
+      color: #D4AF37;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #555555;
+    }
+
+    .final-status-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .final-stat {
+      text-align: center;
+      padding: 12px;
+      background-color: #3a3a3a;
+    }
+
+    .final-stat .name {
+      font-size: 12px;
+      color: #888888;
+      margin-bottom: 4px;
+    }
+
+    .final-stat .value {
+      font-size: 20px;
+      font-family: Consolas, Monaco, monospace;
+    }
+
+    /* ライバル比較 */
+    .rival-result {
+      background-color: #2C2C2C;
+      border: 1px solid #555555;
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+
+    .rival-result-title {
+      font-size: 16px;
+      color: #D4AF37;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #555555;
+    }
+
+    .rival-comparison {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .rival-card {
+      text-align: center;
+      padding: 16px 32px;
+      background-color: #3a3a3a;
+    }
+
+    .rival-card .name {
+      font-size: 14px;
+      color: #888888;
+      margin-bottom: 8px;
+    }
+
+    .rival-card .rank {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    .rival-card .rank.gold {
+      color: #D4AF37;
+    }
+
+    .rival-card .merit {
+      font-size: 14px;
+      font-family: Consolas, Monaco, monospace;
+      color: #CCCCCC;
+    }
+
+    .rival-vs {
+      font-size: 24px;
+      color: #555555;
+    }
+
+    .rival-result-message {
+      margin-top: 16px;
+      padding: 12px;
+      background-color: #3a3a3a;
+      font-size: 14px;
+    }
+
+    .rival-result-message.win {
+      color: #2E7D32;
+    }
+
+    .rival-result-message.lose {
+      color: #C62828;
+    }
+
+    /* ボタンエリア */
+    .button-area {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+    }
+
+    .btn {
+      padding: 16px 48px;
+      font-size: 16px;
+      font-weight: bold;
+      border: 2px solid;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      border-color: #D4AF37;
+      background-color: #D4AF37;
+      color: #1a1a1a;
+    }
+
+    .btn-primary:hover {
+      background-color: #c9a432;
+    }
+
+    .btn-secondary {
+      border-color: #555555;
+      background-color: transparent;
+      color: #CCCCCC;
+    }
+
+    .btn-secondary:hover {
+      background-color: #555555;
+    }
+
+    /* クレジット */
+    .credits {
+      margin-top: 48px;
+      font-size: 12px;
+      color: #555555;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- エンディングヘッダー -->
+    <div class="ending-header">
+      <div class="ending-label">― ENDING ―</div>
+      <h1 class="ending-title">小頭への道</h1>
+      <p class="ending-subtitle">Version 0.1 完</p>
+    </div>
+
+    <!-- 評価 -->
+    <div class="evaluation">
+      <div class="evaluation-rank">A</div>
+      <div class="evaluation-title">優秀な出世</div>
+      <div class="evaluation-message">
+        新九郎は、わずか2年半で徒士から小頭へと昇進を果たした。
+        その武勇と知略は家中でも評判となり、今後の更なる活躍が期待されている。
+        <br><br>
+        これは始まりに過ぎない。戦国の世で、どこまで登り詰めることができるか。
+        新九郎の挑戦は続く...
+      </div>
+    </div>
+
+    <!-- 統計 -->
+    <div class="stats-panel">
+      <h2 class="stats-title">プレイ統計</h2>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="label">総週数</div>
+          <div class="value">128週</div>
+        </div>
+        <div class="stat-item">
+          <div class="label">経過年月</div>
+          <div class="value small">2年6ヶ月</div>
+        </div>
+        <div class="stat-item">
+          <div class="label">最終功績</div>
+          <div class="value">685</div>
+        </div>
+        <div class="stat-item">
+          <div class="label">借金残高</div>
+          <div class="value small">12.5貫</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 最終ステータス -->
+    <div class="final-status">
+      <h2 class="final-status-title">最終ステータス</h2>
+      <div class="final-status-grid">
+        <div class="final-stat">
+          <div class="name">武芸</div>
+          <div class="value">82</div>
+        </div>
+        <div class="final-stat">
+          <div class="name">統率</div>
+          <div class="value">65</div>
+        </div>
+        <div class="final-stat">
+          <div class="name">知略</div>
+          <div class="value">72</div>
+        </div>
+        <div class="final-stat">
+          <div class="name">政務</div>
+          <div class="value">76</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ライバル比較 -->
+    <div class="rival-result">
+      <h2 class="rival-result-title">ライバルとの決着</h2>
+      <div class="rival-comparison">
+        <div class="rival-card">
+          <div class="name">あなた</div>
+          <div class="rank gold">小頭</div>
+          <div class="merit">功績: 685</div>
+        </div>
+        <div class="rival-vs">VS</div>
+        <div class="rival-card">
+          <div class="name">源三郎</div>
+          <div class="rank">馬上衆</div>
+          <div class="merit">功績: 520</div>
+        </div>
+      </div>
+      <div class="rival-result-message win">
+        あなたの勝利！ ライバルより先に小頭へ昇進した！
+      </div>
+    </div>
+
+    <!-- ボタンエリア -->
+    <div class="button-area">
+      <button class="btn btn-secondary">タイトルへ</button>
+      <button class="btn btn-primary">もう一度プレイ</button>
+    </div>
+
+    <!-- クレジット -->
+    <div class="credits">
+      戦国立身出世SLG Version 0.1 © 2025
+    </div>
+  </div>
+</body>
+</html>

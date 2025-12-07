@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SC-05 結果表示画面 - 戦国立身出世SLG</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "游ゴシック", "Yu Gothic", "メイリオ", Meiryo, sans-serif;
+      background-color: #2C2C2C;
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+    }
+
+    .container {
+      max-width: 600px;
+      width: 100%;
+    }
+
+    /* 結果パネル */
+    .result-panel {
+      background-color: #3a3a3a;
+      border: 2px solid #D4AF37;
+      padding: 32px;
+      text-align: center;
+    }
+
+    /* 週表示 */
+    .week-display {
+      font-size: 14px;
+      color: #888888;
+      margin-bottom: 8px;
+    }
+
+    /* 主命名 */
+    .command-name {
+      font-size: 24px;
+      color: #D4AF37;
+      margin-bottom: 24px;
+    }
+
+    /* 結果ステータス */
+    .result-status {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 24px;
+    }
+
+    .result-status.success {
+      color: #2E7D32;
+    }
+
+    .result-status.failure {
+      color: #C62828;
+    }
+
+    /* 結果詳細 */
+    .result-details {
+      background-color: #2C2C2C;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #444444;
+    }
+
+    .result-row:last-child {
+      border-bottom: none;
+    }
+
+    .result-row .label {
+      color: #CCCCCC;
+    }
+
+    .result-row .value {
+      font-family: Consolas, Monaco, monospace;
+      font-weight: bold;
+    }
+
+    .result-row .value.positive {
+      color: #2E7D32;
+    }
+
+    .result-row .value.negative {
+      color: #C62828;
+    }
+
+    .result-row .value.gold {
+      color: #D4AF37;
+    }
+
+    /* メッセージ */
+    .message {
+      font-size: 14px;
+      color: #CCCCCC;
+      line-height: 1.8;
+      margin-bottom: 24px;
+      padding: 16px;
+      background-color: #2C2C2C;
+      border-left: 3px solid #D4AF37;
+      text-align: left;
+    }
+
+    /* ステータス変化 */
+    .status-change {
+      margin-bottom: 24px;
+    }
+
+    .status-change-title {
+      font-size: 14px;
+      color: #888888;
+      margin-bottom: 12px;
+    }
+
+    .status-change-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .status-change-item {
+      background-color: #2C2C2C;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .status-change-item .stat-name {
+      font-size: 12px;
+      color: #888888;
+      margin-bottom: 4px;
+    }
+
+    .status-change-item .stat-value {
+      font-size: 16px;
+      font-family: Consolas, Monaco, monospace;
+    }
+
+    .status-change-item .stat-value.up {
+      color: #2E7D32;
+    }
+
+    /* 続けるボタン */
+    .continue-btn {
+      width: 100%;
+      padding: 16px;
+      font-size: 18px;
+      font-weight: bold;
+      border: 2px solid #D4AF37;
+      background-color: #D4AF37;
+      color: #1a1a1a;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .continue-btn:hover {
+      background-color: #c9a432;
+    }
+
+    /* ライバル情報 */
+    .rival-info {
+      margin-top: 16px;
+      padding: 12px;
+      background-color: #2C2C2C;
+      font-size: 13px;
+      color: #888888;
+    }
+
+    .rival-info span {
+      color: #CCCCCC;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="result-panel">
+      <!-- 週表示 -->
+      <div class="week-display">1575年3月2週目</div>
+
+      <!-- 主命名 -->
+      <h1 class="command-name">訓練</h1>
+
+      <!-- 結果ステータス -->
+      <div class="result-status success">成功</div>
+
+      <!-- メッセージ -->
+      <div class="message">
+        武芸の鍛錬に励んだ。剣の腕が上達したように感じる。
+      </div>
+
+      <!-- 結果詳細 -->
+      <div class="result-details">
+        <div class="result-row">
+          <span class="label">功績</span>
+          <span class="value positive">+5</span>
+        </div>
+        <div class="result-row">
+          <span class="label">累計功績</span>
+          <span class="value gold">125</span>
+        </div>
+      </div>
+
+      <!-- ステータス変化 -->
+      <div class="status-change">
+        <div class="status-change-title">ステータス変化</div>
+        <div class="status-change-grid">
+          <div class="status-change-item">
+            <div class="stat-name">武芸経験</div>
+            <div class="stat-value up">+10</div>
+          </div>
+          <div class="status-change-item">
+            <div class="stat-name">武芸</div>
+            <div class="stat-value">52 → 52</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 続けるボタン -->
+      <button class="continue-btn">続ける</button>
+
+      <!-- ライバル情報 -->
+      <div class="rival-info">
+        ライバル源三郎は <span>情報収集</span> を行った（功績+12）
+      </div>
+    </div>
+  </div>
+</body>
+</html>

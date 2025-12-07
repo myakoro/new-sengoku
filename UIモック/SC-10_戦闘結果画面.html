@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SC-10 戦闘結果画面 - 戦国立身出世SLG</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "游ゴシック", "Yu Gothic", "メイリオ", Meiryo, sans-serif;
+      background-color: #1a1a1a;
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+    }
+
+    .container {
+      max-width: 600px;
+      width: 100%;
+    }
+
+    /* 結果パネル */
+    .result-panel {
+      background-color: #2C2C2C;
+      border: 2px solid #2E7D32;
+      padding: 32px;
+      text-align: center;
+    }
+
+    .result-panel.failure {
+      border-color: #C62828;
+    }
+
+    /* ミッション名 */
+    .mission-name {
+      font-size: 16px;
+      color: #888888;
+      margin-bottom: 8px;
+    }
+
+    /* 結果タイトル */
+    .result-title {
+      font-size: 42px;
+      font-weight: bold;
+      margin-bottom: 24px;
+    }
+
+    .result-title.success {
+      color: #2E7D32;
+    }
+
+    .result-title.failure {
+      color: #C62828;
+    }
+
+    /* 戦闘詳細 */
+    .battle-summary {
+      background-color: #3a3a3a;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .battle-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #444444;
+    }
+
+    .battle-row:last-child {
+      border-bottom: none;
+    }
+
+    .battle-row .label {
+      color: #CCCCCC;
+    }
+
+    .battle-row .value {
+      font-family: Consolas, Monaco, monospace;
+    }
+
+    .battle-row .value.win {
+      color: #2E7D32;
+    }
+
+    .battle-row .value.lose {
+      color: #C62828;
+    }
+
+    /* 報酬セクション */
+    .reward-section {
+      background-color: #3a3a3a;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .reward-title {
+      font-size: 14px;
+      color: #D4AF37;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #555555;
+    }
+
+    .reward-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .reward-item {
+      text-align: center;
+      padding: 12px;
+      background-color: #2C2C2C;
+    }
+
+    .reward-item .label {
+      font-size: 12px;
+      color: #888888;
+      margin-bottom: 4px;
+    }
+
+    .reward-item .value {
+      font-size: 20px;
+      font-family: Consolas, Monaco, monospace;
+      color: #D4AF37;
+    }
+
+    /* 経験値 */
+    .exp-section {
+      background-color: #3a3a3a;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+
+    .exp-title {
+      font-size: 14px;
+      color: #888888;
+      margin-bottom: 12px;
+    }
+
+    .exp-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .exp-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background-color: #2C2C2C;
+    }
+
+    .exp-item .label {
+      color: #CCCCCC;
+      font-size: 13px;
+    }
+
+    .exp-item .value {
+      color: #2E7D32;
+      font-family: Consolas, Monaco, monospace;
+      font-size: 13px;
+    }
+
+    /* メッセージ */
+    .message {
+      font-size: 14px;
+      color: #CCCCCC;
+      line-height: 1.8;
+      padding: 16px;
+      background-color: #3a3a3a;
+      border-left: 3px solid #D4AF37;
+      text-align: left;
+      margin-bottom: 24px;
+    }
+
+    /* 戦利品（成功時） */
+    .loot-section {
+      background-color: #3a3a3a;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+
+    .loot-title {
+      font-size: 14px;
+      color: #D4AF37;
+      margin-bottom: 12px;
+    }
+
+    .loot-list {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .loot-item {
+      padding: 8px 16px;
+      background-color: #2C2C2C;
+      font-size: 14px;
+    }
+
+    .loot-item .value {
+      color: #2E7D32;
+      font-family: Consolas, Monaco, monospace;
+    }
+
+    /* 続けるボタン */
+    .continue-btn {
+      width: 100%;
+      padding: 16px;
+      font-size: 18px;
+      font-weight: bold;
+      border: 2px solid #D4AF37;
+      background-color: #D4AF37;
+      color: #1a1a1a;
+      cursor: pointer;
+    }
+
+    .continue-btn:hover {
+      background-color: #c9a432;
+    }
+
+    /* 被害（失敗時用） */
+    .damage-section {
+      background-color: #3a3a3a;
+      padding: 16px;
+      margin-bottom: 24px;
+      border-left: 3px solid #C62828;
+    }
+
+    .damage-title {
+      font-size: 14px;
+      color: #C62828;
+      margin-bottom: 8px;
+    }
+
+    .damage-text {
+      font-size: 13px;
+      color: #CCCCCC;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="result-panel">
+      <!-- ミッション名 -->
+      <div class="mission-name">盗賊討伐（中規模）</div>
+
+      <!-- 結果タイトル -->
+      <h1 class="result-title success">討伐成功</h1>
+
+      <!-- 戦闘詳細 -->
+      <div class="battle-summary">
+        <div class="battle-row">
+          <span class="label">味方戦力</span>
+          <span class="value">362</span>
+        </div>
+        <div class="battle-row">
+          <span class="label">敵戦力</span>
+          <span class="value">100 → 70（計略効果）</span>
+        </div>
+        <div class="battle-row">
+          <span class="label">成功率</span>
+          <span class="value win">72%</span>
+        </div>
+        <div class="battle-row">
+          <span class="label">判定</span>
+          <span class="value win">成功</span>
+        </div>
+      </div>
+
+      <!-- 報酬 -->
+      <div class="reward-section">
+        <div class="reward-title">報酬</div>
+        <div class="reward-grid">
+          <div class="reward-item">
+            <div class="label">功績</div>
+            <div class="value">+30</div>
+          </div>
+          <div class="reward-item">
+            <div class="label">米</div>
+            <div class="value">+0.125石</div>
+          </div>
+          <div class="reward-item">
+            <div class="label">金</div>
+            <div class="value">+0.075貫</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 戦利品（盗賊の財産の50%） -->
+      <div class="loot-section">
+        <div class="loot-title">戦利品</div>
+        <div class="loot-list">
+          <div class="loot-item">
+            米 <span class="value">+0.09石</span>
+          </div>
+          <div class="loot-item">
+            金 <span class="value">+0.04貫</span>
+          </div>
+        </div>
+        <p style="font-size: 11px; color: #888888; margin-top: 8px;">※上司報酬: 米0.075石 + 金0.05貫</p>
+      </div>
+
+      <!-- 経験値 -->
+      <div class="exp-section">
+        <div class="exp-title">獲得経験値</div>
+        <div class="exp-grid">
+          <div class="exp-item">
+            <span class="label">武芸経験</span>
+            <span class="value">+20</span>
+          </div>
+          <div class="exp-item">
+            <span class="label">知略経験</span>
+            <span class="value">+10</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- メッセージ -->
+      <div class="message">
+        見事、盗賊どもを討ち果たした。この功績は必ずや評価されるであろう。
+      </div>
+
+      <!-- 続けるボタン -->
+      <button class="continue-btn">続ける</button>
+    </div>
+  </div>
+</body>
+</html>

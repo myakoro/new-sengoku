@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SC-08 盗賊討伐画面 - 戦国立身出世SLG</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "游ゴシック", "Yu Gothic", "メイリオ", Meiryo, sans-serif;
+      background-color: #2C2C2C;
+      color: #ffffff;
+      min-height: 100vh;
+      padding: 40px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* ヘッダー */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #C62828;
+    }
+
+    .header-left h1 {
+      font-size: 24px;
+      color: #C62828;
+      margin-bottom: 4px;
+    }
+
+    .header-left .mission-info {
+      font-size: 14px;
+      color: #CCCCCC;
+    }
+
+    .header-right {
+      text-align: right;
+    }
+
+    .week-display {
+      font-size: 16px;
+      color: #D4AF37;
+      margin-bottom: 4px;
+    }
+
+    .progress-display {
+      font-size: 14px;
+      color: #CCCCCC;
+    }
+
+    /* メインコンテンツ */
+    .main-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    /* パネル共通 */
+    .panel {
+      background-color: #3a3a3a;
+      border: 1px solid #555555;
+      padding: 20px;
+    }
+
+    .panel-title {
+      font-size: 16px;
+      color: #D4AF37;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #555555;
+    }
+
+    /* 戦力比較 */
+    .power-comparison {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .power-box {
+      text-align: center;
+      padding: 16px 24px;
+      background-color: #2C2C2C;
+      flex: 1;
+    }
+
+    .power-box .label {
+      font-size: 12px;
+      color: #888888;
+      margin-bottom: 8px;
+    }
+
+    .power-box .value {
+      font-size: 28px;
+      font-family: Consolas, Monaco, monospace;
+      font-weight: bold;
+    }
+
+    .power-box .value.player {
+      color: #2E7D32;
+    }
+
+    .power-box .value.enemy {
+      color: #C62828;
+    }
+
+    .power-vs {
+      padding: 0 16px;
+      font-size: 20px;
+      color: #555555;
+    }
+
+    /* 成功率 */
+    .success-rate {
+      text-align: center;
+      padding: 16px;
+      background-color: #2C2C2C;
+    }
+
+    .success-rate .label {
+      font-size: 12px;
+      color: #888888;
+      margin-bottom: 8px;
+    }
+
+    .success-rate .value {
+      font-size: 32px;
+      font-family: Consolas, Monaco, monospace;
+      font-weight: bold;
+    }
+
+    .success-rate .value.high {
+      color: #2E7D32;
+    }
+
+    .success-rate .value.medium {
+      color: #D4AF37;
+    }
+
+    .success-rate .value.low {
+      color: #C62828;
+    }
+
+    /* 敵情報 */
+    .enemy-info {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .enemy-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #444444;
+    }
+
+    .enemy-row:last-child {
+      border-bottom: none;
+    }
+
+    .enemy-row .label {
+      color: #CCCCCC;
+    }
+
+    .enemy-row .value {
+      font-family: Consolas, Monaco, monospace;
+    }
+
+    .enemy-row .value.unknown {
+      color: #888888;
+    }
+
+    .enemy-row .value.revealed {
+      color: #D4AF37;
+    }
+
+    /* 弱点表示 */
+    .weakness-tag {
+      display: inline-block;
+      padding: 4px 12px;
+      background-color: #C62828;
+      color: #ffffff;
+      font-size: 12px;
+      border-radius: 2px;
+    }
+
+    /* 行動選択 */
+    .action-section {
+      background-color: #3a3a3a;
+      border: 2px solid #D4AF37;
+      padding: 24px;
+    }
+
+    .action-title {
+      font-size: 18px;
+      color: #D4AF37;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .action-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .action-btn {
+      padding: 16px;
+      font-size: 14px;
+      font-weight: bold;
+      border: 2px solid #555555;
+      background-color: #2C2C2C;
+      color: #CCCCCC;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+
+    .action-btn:hover {
+      border-color: #D4AF37;
+      color: #D4AF37;
+    }
+
+    .action-btn.primary {
+      border-color: #C62828;
+      background-color: #C62828;
+      color: #ffffff;
+    }
+
+    .action-btn.primary:hover {
+      background-color: #a52222;
+    }
+
+    .action-btn .main {
+      margin-bottom: 4px;
+    }
+
+    .action-btn .sub {
+      font-size: 11px;
+      font-weight: normal;
+      opacity: 0.8;
+    }
+
+    /* 最終週の攻撃ボタン */
+    .final-actions {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .attack-btn {
+      padding: 20px;
+      font-size: 16px;
+      font-weight: bold;
+      border: 2px solid #C62828;
+      background-color: #C62828;
+      color: #ffffff;
+      cursor: pointer;
+    }
+
+    .attack-btn:hover {
+      background-color: #a52222;
+    }
+
+    .retreat-btn {
+      padding: 20px;
+      font-size: 16px;
+      font-weight: bold;
+      border: 2px solid #555555;
+      background-color: transparent;
+      color: #888888;
+      cursor: pointer;
+    }
+
+    .retreat-btn:hover {
+      background-color: #555555;
+      color: #ffffff;
+    }
+
+    /* 味方情報 */
+    .ally-info {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .ally-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #444444;
+    }
+
+    .ally-row:last-child {
+      border-bottom: none;
+    }
+
+    .ally-row .label {
+      color: #CCCCCC;
+    }
+
+    .ally-row .value {
+      font-family: Consolas, Monaco, monospace;
+    }
+
+    /* ログ */
+    .log-panel {
+      background-color: #3a3a3a;
+      border: 1px solid #555555;
+      padding: 16px;
+      margin-top: 24px;
+    }
+
+    .log-title {
+      font-size: 14px;
+      color: #D4AF37;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #555555;
+    }
+
+    .log-list {
+      font-size: 13px;
+      color: #CCCCCC;
+      line-height: 1.8;
+    }
+
+    .log-item {
+      padding: 4px 0;
+    }
+
+    .log-item .week {
+      color: #888888;
+    }
+
+    .log-item.success {
+      color: #2E7D32;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- ヘッダー -->
+    <header class="header">
+      <div class="header-left">
+        <h1>盗賊討伐（中規模）</h1>
+        <div class="mission-info">敵勢力: 3〜5名 / 報酬功績: 30</div>
+      </div>
+      <div class="header-right">
+        <div class="week-display">1575年4月2週目</div>
+        <div class="progress-display">第2週 / 4週</div>
+      </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <div class="main-content">
+      <!-- 左: 敵情報（偵察前の状態） -->
+      <div class="panel">
+        <h2 class="panel-title">敵情報</h2>
+        <div class="enemy-info">
+          <div class="enemy-row">
+            <span class="label">敵人数</span>
+            <span class="value unknown">3〜5名</span>
+          </div>
+          <div class="enemy-row">
+            <span class="label">基礎戦闘力</span>
+            <span class="value unknown">70〜110</span>
+          </div>
+          <div class="enemy-row">
+            <span class="label">士気</span>
+            <span class="value">40 / 40</span>
+          </div>
+          <div class="enemy-row">
+            <span class="label">弱点</span>
+            <span class="value unknown">不明</span>
+          </div>
+          <div class="enemy-row">
+            <span class="label">内応者</span>
+            <span class="value unknown">不明</span>
+          </div>
+        </div>
+        <p style="font-size: 11px; color: #888888; margin-top: 12px;">※偵察で詳細情報を取得可能</p>
+      </div>
+
+      <!-- 右: 味方情報 -->
+      <div class="panel">
+        <h2 class="panel-title">味方戦力</h2>
+        <div class="ally-info">
+          <div class="ally-row">
+            <span class="label">主人公</span>
+            <span class="value">武芸 52</span>
+          </div>
+          <div class="ally-row">
+            <span class="label">従僕</span>
+            <span class="value">3名（平均 50）</span>
+          </div>
+          <div class="ally-row">
+            <span class="label">徒士</span>
+            <span class="value">0名</span>
+          </div>
+          <div class="ally-row">
+            <span class="label">臨時足軽</span>
+            <span class="value">5名</span>
+          </div>
+        </div>
+
+        <!-- 戦力比較 -->
+        <div class="power-comparison" style="margin-top: 16px;">
+          <div class="power-box">
+            <div class="label">味方戦力</div>
+            <div class="value player">362</div>
+          </div>
+          <div class="power-vs">VS</div>
+          <div class="power-box">
+            <div class="label">敵戦力</div>
+            <div class="value enemy">70〜110</div>
+          </div>
+        </div>
+
+        <!-- 成功率 -->
+        <div class="success-rate">
+          <div class="label">現在の成功率</div>
+          <div class="value unknown">85〜95%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 行動選択 -->
+    <div class="action-section">
+      <h2 class="action-title">今週の準備行動を選択</h2>
+      <div class="action-grid">
+        <div class="action-btn">
+          <div class="main">偵察</div>
+          <div class="sub">敵情報を得る</div>
+        </div>
+        <div class="action-btn">
+          <div class="main">偽情報</div>
+          <div class="sub">士気-15（弱点時-30）</div>
+        </div>
+        <div class="action-btn">
+          <div class="main">内応者買収</div>
+          <div class="sub">戦闘力-10%</div>
+        </div>
+        <div class="action-btn">
+          <div class="main">足軽を雇う</div>
+          <div class="sub">5名: 0.5貫</div>
+        </div>
+        <div class="action-btn">
+          <div class="main">待機</div>
+          <div class="sub">何もしない</div>
+        </div>
+        <div class="action-btn" style="border-color: #C62828; color: #C62828;">
+          <div class="main">諦める</div>
+          <div class="sub">ミッション中止</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 最終週用（コメントアウト）
+    <div class="action-section">
+      <h2 class="action-title">最終週 - 攻撃を選択</h2>
+      <div class="final-actions">
+        <button class="attack-btn">
+          通常攻撃<br>
+          <span style="font-size: 12px; font-weight: normal;">成功率: 62%</span>
+        </button>
+        <button class="attack-btn">
+          夜襲<br>
+          <span style="font-size: 12px; font-weight: normal;">成功率: 72%（士気-20）</span>
+        </button>
+      </div>
+      <div style="text-align: center; margin-top: 16px;">
+        <button class="retreat-btn" style="width: 200px;">諦める</button>
+      </div>
+    </div>
+    -->
+
+    <!-- ログ -->
+    <div class="log-panel">
+      <h3 class="log-title">行動ログ</h3>
+      <div class="log-list">
+        <div class="log-item">
+          <span class="week">[第1週]</span> 足軽5名を雇用。戦力が増強された。
+        </div>
+        <div class="log-item">
+          <span class="week">[開始]</span> 盗賊討伐（中規模）を開始。敵勢力5〜10名と推定。
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
