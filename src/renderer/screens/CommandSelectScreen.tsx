@@ -31,6 +31,14 @@ export const CommandSelectScreen: React.FC = () => {
         // 盗賊討伐の場合はミッション開始
         if (command.banditRank) {
             const bandit = generateBandit(command.banditRank)
+
+            const initialLog = {
+                week: "開始" as const,
+                actionName: "任務開始",
+                result: "―" as const,
+                detail: `${selectedCommand}を開始。期限: ${command.duration}週間後。`
+            }
+
             setMission({
                 type: 'bandit_subjugation',
                 rank: command.banditRank,
@@ -39,6 +47,7 @@ export const CommandSelectScreen: React.FC = () => {
                 currentWeek: 1,
                 additionalAshigaru: 0,
                 strategies: [],
+                actionLogs: [initialLog]
             })
             setCurrentScreen('bandit-mission')
         } else {

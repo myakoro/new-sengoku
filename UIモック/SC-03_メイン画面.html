@@ -298,6 +298,37 @@
     .retainer-item .count {
       font-family: Consolas, Monaco, monospace;
     }
+
+    .retainer-item .injury-status {
+      font-size: 11px;
+      color: #888888;
+      margin-left: auto;
+    }
+
+    .light-injury {
+      color: #EAB308;
+    }
+
+    .severe-injury {
+      color: #F97316;
+    }
+
+    .detail-btn {
+      width: 100%;
+      margin-top: 12px;
+      padding: 8px;
+      font-size: 12px;
+      border: 1px solid #555555;
+      background-color: #2C2C2C;
+      color: #CCCCCC;
+      cursor: pointer;
+    }
+
+    .detail-btn:hover {
+      background-color: #3a3a3a;
+      border-color: #D4AF37;
+      color: #D4AF37;
+    }
   </style>
 </head>
 <body>
@@ -362,6 +393,10 @@
             <span class="value">1.2石</span>
           </div>
           <div class="stat-item">
+            <span class="label">金</span>
+            <span class="value">0.5貫</span>
+          </div>
+          <div class="stat-item">
             <span class="label">借金</span>
             <span class="value red">0貫</span>
           </div>
@@ -375,6 +410,7 @@
           <div class="retainer-item">
             <span class="type">従僕</span>
             <span class="count">3名</span>
+            <span class="injury-status">（正常2、<span class="light-injury">軽傷1</span>）</span>
           </div>
           <div class="retainer-item">
             <span class="type">徒士</span>
@@ -385,6 +421,7 @@
             <span class="count">0名</span>
           </div>
         </div>
+        <button class="detail-btn" onclick="alert('家臣詳細画面へ遷移')">詳細を見る</button>
       </div>
     </aside>
 

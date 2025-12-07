@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SC-12: 家臣詳細画面</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+      background-color: #1a1a1a;
+      color: #FFFFFF;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 600px;
+      background-color: #2C2C2C;
+      border: 1px solid #555555;
+      padding: 24px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #555555;
+    }
+
+    .header h1 {
+      font-size: 20px;
+      color: #D4AF37;
+    }
+
+    .close-btn {
+      padding: 8px 16px;
+      font-size: 14px;
+      border: 1px solid #555555;
+      background-color: #3a3a3a;
+      color: #CCCCCC;
+      cursor: pointer;
+    }
+
+    .close-btn:hover {
+      border-color: #D4AF37;
+      color: #D4AF37;
+    }
+
+    /* セクション */
+    .section {
+      margin-bottom: 24px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      color: #D4AF37;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #555555;
+    }
+
+    /* 家臣カード */
+    .retainer-card {
+      background: #1a1a1a;
+      border: 1px solid #3a3a3a;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .retainer-card.normal {
+      border-left: 4px solid #22C55E;
+    }
+
+    .retainer-card.light-injury {
+      border-left: 4px solid #EAB308;
+      background: rgba(234, 179, 8, 0.05);
+    }
+
+    .retainer-card.severe-injury {
+      border-left: 4px solid #F97316;
+      background: rgba(249, 115, 22, 0.05);
+    }
+
+    .retainer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .retainer-name {
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .status-badge.normal {
+      background: #22C55E;
+      color: #000;
+    }
+
+    .status-badge.light {
+      background: #EAB308;
+      color: #000;
+    }
+
+    .status-badge.severe {
+      background: #F97316;
+      color: #fff;
+    }
+
+    .retainer-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+    }
+
+    .stat-row .label {
+      color: #888888;
+    }
+
+    .stat-row .value {
+      font-family: Consolas, Monaco, monospace;
+    }
+
+    .stat-row .value.reduced {
+      color: #EAB308;
+    }
+
+    .stat-row .value.zero {
+      color: #F97316;
+    }
+
+    .recovery-info {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #3a3a3a;
+      font-size: 12px;
+      color: #888888;
+    }
+
+    .recovery-info .highlight {
+      color: #EAB308;
+    }
+
+    .recovery-info .highlight.severe {
+      color: #F97316;
+    }
+
+    /* 空の状態 */
+    .empty-state {
+      text-align: center;
+      padding: 24px;
+      color: #888888;
+      font-size: 14px;
+    }
+
+    /* サマリー */
+    .summary {
+      background-color: #3a3a3a;
+      padding: 16px;
+      border-radius: 4px;
+      margin-top: 24px;
+    }
+
+    .summary-title {
+      font-size: 14px;
+      color: #D4AF37;
+      margin-bottom: 12px;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      padding: 4px 0;
+    }
+
+    .summary-row .label {
+      color: #CCCCCC;
+    }
+
+    .summary-row .value {
+      font-family: Consolas, Monaco, monospace;
+    }
+
+    .summary-row .value.warning {
+      color: #EAB308;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>家臣詳細</h1>
+      <button class="close-btn">閉じる</button>
+    </div>
+
+    <!-- 従僕セクション -->
+    <div class="section">
+      <h2 class="section-title">従僕（3名）</h2>
+
+      <!-- 正常な家臣 -->
+      <div class="retainer-card normal">
+        <div class="retainer-header">
+          <span class="retainer-name">山田太郎</span>
+          <span class="status-badge normal">正常</span>
+        </div>
+        <div class="retainer-stats">
+          <div class="stat-row">
+            <span class="label">武芸</span>
+            <span class="value">48</span>
+          </div>
+          <div class="stat-row">
+            <span class="label">戦闘力</span>
+            <span class="value">48 (100%)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 軽傷の家臣 -->
+      <div class="retainer-card light-injury">
+        <div class="retainer-header">
+          <span class="retainer-name">佐藤次郎</span>
+          <span class="status-badge light">軽傷</span>
+        </div>
+        <div class="retainer-stats">
+          <div class="stat-row">
+            <span class="label">武芸</span>
+            <span class="value">53</span>
+          </div>
+          <div class="stat-row">
+            <span class="label">戦闘力</span>
+            <span class="value reduced">42 (80%)</span>
+          </div>
+        </div>
+        <div class="recovery-info">
+          回復まで: <span class="highlight">あと3週間</span>
+        </div>
+      </div>
+
+      <!-- 重傷の家臣 -->
+      <div class="retainer-card severe-injury">
+        <div class="retainer-header">
+          <span class="retainer-name">鈴木三郎</span>
+          <span class="status-badge severe">重傷</span>
+        </div>
+        <div class="retainer-stats">
+          <div class="stat-row">
+            <span class="label">武芸</span>
+            <span class="value">45</span>
+          </div>
+          <div class="stat-row">
+            <span class="label">戦闘力</span>
+            <span class="value zero">0 (戦闘不可)</span>
+          </div>
+        </div>
+        <div class="recovery-info">
+          回復まで: <span class="highlight severe">あと7週間</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 徒士セクション -->
+    <div class="section">
+      <h2 class="section-title">徒士（0名）</h2>
+      <div class="empty-state">
+        徒士はいません
+      </div>
+    </div>
+
+    <!-- 馬上衆セクション -->
+    <div class="section">
+      <h2 class="section-title">馬上衆（0名）</h2>
+      <div class="empty-state">
+        馬上衆はいません
+      </div>
+    </div>
+
+    <!-- サマリー -->
+    <div class="summary">
+      <div class="summary-title">戦力サマリー</div>
+      <div class="summary-row">
+        <span class="label">家臣総数</span>
+        <span class="value">3名</span>
+      </div>
+      <div class="summary-row">
+        <span class="label">正常</span>
+        <span class="value">1名</span>
+      </div>
+      <div class="summary-row">
+        <span class="label">軽傷</span>
+        <span class="value warning">1名</span>
+      </div>
+      <div class="summary-row">
+        <span class="label">重傷</span>
+        <span class="value warning">1名</span>
+      </div>
+      <div class="summary-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #555555;">
+        <span class="label">基礎戦力</span>
+        <span class="value">146</span>
+      </div>
+      <div class="summary-row">
+        <span class="label">実効戦力</span>
+        <span class="value warning">90 (-56)</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

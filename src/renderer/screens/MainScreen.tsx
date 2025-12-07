@@ -115,6 +115,10 @@ export const MainScreen: React.FC = () => {
                                 <span className="font-mono">{player.rice.toFixed(2)}石</span>
                             </div>
                             <div className="flex justify-between text-sm">
+                                <span className="text-sengoku-gray">金</span>
+                                <span className="font-mono">{player.money.toFixed(2)}貫</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
                                 <span className="text-sengoku-gray">借金</span>
                                 <span className="font-mono text-sengoku-danger">
                                     {player.debt.toFixed(2)}貫
@@ -128,7 +132,24 @@ export const MainScreen: React.FC = () => {
                         <div className="space-y-2">
                             <div className="flex justify-between text-sm">
                                 <span className="text-sengoku-gray">従僕</span>
-                                <span className="font-mono">{player.juuboku.length}名</span>
+                                <span className="font-mono">
+                                    {player.juuboku.length}名
+                                    {player.juuboku.length > 0 && (() => {
+                                        const normal = player.juuboku.filter(j => j.injuryStatus === 'normal').length
+                                        const light = player.juuboku.filter(j => j.injuryStatus === 'light').length
+                                        const severe = player.juuboku.filter(j => j.injuryStatus === 'severe').length
+                                        if (light > 0 || severe > 0) {
+                                            return (
+                                                <span className="text-xs ml-1">
+                                                    ({normal > 0 && `正常${normal}`}
+                                                    {light > 0 && `${normal > 0 ? '、' : ''}軽傷${light}`}
+                                                    {severe > 0 && `${(normal > 0 || light > 0) ? '、' : ''}重傷${severe}`})
+                                                </span>
+                                            )
+                                        }
+                                        return null
+                                    })()}
+                                </span>
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-sengoku-gray">徒士</span>

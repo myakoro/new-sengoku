@@ -15,6 +15,7 @@ import {
     JUUBOKU_COMBAT_RANGE,
     PROMOTION_BONUS,
 } from '../constants/game'
+import { processWeeklyInjuryRecovery } from '../utils/injury'
 
 interface GameState {
     // プレイヤー
@@ -68,6 +69,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         const juuboku = Array.from({ length: INITIAL_JUUBOKU_COUNT }, (_, i) => ({
             id: i + 1,
             combat: randomInt(JUUBOKU_COMBAT_RANGE[0], JUUBOKU_COMBAT_RANGE[1]),
+            injuryStatus: 'normal' as const,
+            injuryWeeksRemaining: 0,
         }))
 
         const player: PlayerState = {
@@ -111,6 +114,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         const rivalJuuboku = Array.from({ length: INITIAL_JUUBOKU_COUNT }, (_, i) => ({
             id: i + 1,
             combat: randomInt(JUUBOKU_COMBAT_RANGE[0], JUUBOKU_COMBAT_RANGE[1]),
+            injuryStatus: 'normal' as const,
+            injuryWeeksRemaining: 0,
         }))
 
         const rival: RivalState = {
@@ -170,10 +175,13 @@ export const useGameStore = create<GameState>((set, get) => ({
                 updatedRival.rank = '小頭'
             }
 
+            // 週次負傷回復処理
+            const recoveredPlayer = processWeeklyInjuryRecovery(state.player)
+
             return {
                 player: {
-                    ...state.player,
-                    week: state.player.week + 1,
+                    ...recoveredPlayer,
+                    week: recoveredPlayer.week + 1,
                 },
                 rival: updatedRival,
             }

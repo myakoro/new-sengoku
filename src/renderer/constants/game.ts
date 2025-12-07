@@ -110,13 +110,13 @@ export const COMMANDS: Record<string, Command> = {
         name: '盗賊討伐（小規模）',
         duration: 2,
         merit: 8,
-        banditRank: 'S',
+        banditRank: 'D',
     },
     '盗賊討伐（中規模）': {
         name: '盗賊討伐（中規模）',
         duration: 4,
         merit: 15,
-        banditRank: 'A',
+        banditRank: 'C',
     },
     '盗賊討伐（大規模）': {
         name: '盗賊討伐（大規模）',
@@ -129,14 +129,15 @@ export const COMMANDS: Record<string, Command> = {
         name: '盗賊討伐（討伐戦）',
         duration: 4,
         merit: 50,
-        banditRank: 'C',
+        banditRank: 'A',
         requireRank: '馬上衆',
     },
     '盗賊討伐（賊軍）': {
         name: '盗賊討伐（賊軍）',
         duration: 8,
         merit: 80,
-        banditRank: 'D',
+        banditRank: 'S',
+        requireRank: '小頭',
     },
 }
 
@@ -151,31 +152,31 @@ export const BANDIT_RANKS: Record<
         bossReward: { rice: number; money: number }
     }
 > = {
-    S: {
+    D: {
         count: [1, 2],
         combatRange: [15, 50],
-        merit: 8,
+        merit: 15,
         bossReward: { rice: 0.05, money: 0.025 },
     },
-    A: {
+    C: {
         count: [3, 5],
         combatRange: [70, 110],
-        merit: 15,
+        merit: 30,
         bossReward: { rice: 0.075, money: 0.05 },
     },
     B: {
         count: [6, 10],
         combatRange: [150, 250],
-        merit: 30,
+        merit: 40,
         bossReward: { rice: 0.125, money: 0.075 },
     },
-    C: {
+    A: {
         count: [11, 15],
         combatRange: [300, 450],
-        merit: 50,
+        merit: 60,
         bossReward: { rice: 0.25, money: 0.125 },
     },
-    D: {
+    S: {
         count: [20, 25],
         baseCombat: 800,
         merit: 80,

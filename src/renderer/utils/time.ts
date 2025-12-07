@@ -20,7 +20,7 @@ export function formatDate(time: GameTime): string {
 }
 
 /**
- * 月次処理が必要かチェック
+ * 月次処理が必要かチェック（4週目の後）
  */
 export function isMonthlyProcessing(week: number): boolean {
     return week % 4 === 0

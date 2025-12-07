@@ -41,7 +41,12 @@ export const CharacterCreateScreen: React.FC = () => {
     const { initializeGame, setCurrentScreen } = useGameStore()
 
     const [name, setName] = useState('新九郎')
-    const [potential, setPotential] = useState<Stats>(generateRandomPotential())
+    const [potential, setPotential] = useState<Stats>({
+        combat: 80,
+        command: 70,
+        intelligence: 80,
+        administration: 70
+    })
     const [juuboku, setJuuboku] = useState([
         randomInt(JUUBOKU_COMBAT_RANGE[0], JUUBOKU_COMBAT_RANGE[1]),
         randomInt(JUUBOKU_COMBAT_RANGE[0], JUUBOKU_COMBAT_RANGE[1]),

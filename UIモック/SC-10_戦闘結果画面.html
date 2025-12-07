@@ -247,6 +247,62 @@
       font-size: 13px;
       color: #CCCCCC;
     }
+
+    /* 損失セクション */
+    .casualties-section {
+      background-color: #3a3a3a;
+      padding: 16px;
+      margin-bottom: 24px;
+      border-radius: 4px;
+    }
+
+    .casualties-title {
+      font-size: 14px;
+      color: #D4AF37;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #555555;
+    }
+
+    .casualty-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      font-size: 13px;
+    }
+
+    .casualty-item .label {
+      min-width: 50px;
+      font-weight: bold;
+    }
+
+    .casualty-item .count {
+      min-width: 40px;
+    }
+
+    .casualty-item .names {
+      color: #AAAAAA;
+      font-size: 12px;
+    }
+
+    .casualty-item .recovery {
+      font-size: 11px;
+      margin-left: auto;
+    }
+
+    .casualty-item.death .label { color: #EF4444; }
+    .casualty-item.severe .label { color: #F97316; }
+    .casualty-item.light .label { color: #EAB308; }
+    .casualty-item.safe .label { color: #22C55E; }
+
+    .casualty-item.death .count { color: #EF4444; }
+    .casualty-item.severe .count { color: #F97316; }
+    .casualty-item.light .count { color: #EAB308; }
+    .casualty-item.safe .count { color: #22C55E; }
+
+    .casualty-item.severe .recovery { color: #F97316; }
+    .casualty-item.light .recovery { color: #EAB308; }
   </style>
 </head>
 <body>
@@ -257,6 +313,31 @@
 
       <!-- 結果タイトル -->
       <h1 class="result-title success">討伐成功</h1>
+
+      <!-- 損失 -->
+      <div class="casualties-section">
+        <div class="casualties-title">損失</div>
+        <div class="casualty-item death">
+          <span class="label">死亡</span>
+          <span class="count">0名</span>
+        </div>
+        <div class="casualty-item severe">
+          <span class="label">重傷</span>
+          <span class="count">1名</span>
+          <span class="names">（従僕・山田太郎）</span>
+          <span class="recovery">※8週間で回復</span>
+        </div>
+        <div class="casualty-item light">
+          <span class="label">軽傷</span>
+          <span class="count">2名</span>
+          <span class="names">（従僕・佐藤次郎、鈴木三郎）</span>
+          <span class="recovery">※4週間で回復</span>
+        </div>
+        <div class="casualty-item safe">
+          <span class="label">無傷</span>
+          <span class="count">0名</span>
+        </div>
+      </div>
 
       <!-- 戦闘詳細 -->
       <div class="battle-summary">

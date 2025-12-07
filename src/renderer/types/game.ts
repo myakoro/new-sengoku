@@ -2,6 +2,8 @@
 
 export type Rank = '徒士' | '馬上衆' | '小頭'
 
+export type InjuryStatus = 'normal' | 'light' | 'severe'
+
 export interface Stats {
     combat: number
     command: number
@@ -24,16 +26,22 @@ export interface Experience {
 export interface Juuboku {
     id: number
     combat: number
+    injuryStatus: InjuryStatus
+    injuryWeeksRemaining: number
 }
 
 export interface Ashigaru {
     id: number
     combat: number
+    injuryStatus: InjuryStatus
+    injuryWeeksRemaining: number
 }
 
 export interface BashoShu {
     id: number
     combat: number
+    injuryStatus: InjuryStatus
+    injuryWeeksRemaining: number
 }
 
 export interface PlayerState {
@@ -90,6 +98,13 @@ export interface BanditState {
 
 export type StrategyType = 'scout' | 'misinformation' | 'bribe' | 'hire'
 
+export interface ActionLogEntry {
+    week: number | "開始"
+    actionName: string
+    result: "成功" | "失敗" | "―"
+    detail: string
+}
+
 export interface MissionState {
     type: 'bandit_subjugation'
     rank: BanditRank
@@ -98,6 +113,7 @@ export interface MissionState {
     currentWeek: number
     additionalAshigaru: number
     strategies: StrategyType[]
+    actionLogs?: ActionLogEntry[]
 }
 
 export interface GameTime {
