@@ -47,17 +47,60 @@
 
     .header-right {
       text-align: right;
+      min-width: 280px;
     }
 
-    .week-display {
-      font-size: 16px;
+    .time-display {
+      display: flex;
+      gap: 24px;
+      justify-content: flex-end;
+      margin-bottom: 8px;
+    }
+
+    .current-time, .deadline-time {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    .time-label {
+      font-size: 11px;
+      color: #888888;
+      margin-bottom: 2px;
+    }
+
+    .time-value {
+      font-size: 14px;
       color: #D4AF37;
+    }
+
+    .time-value.deadline {
+      color: #FF6B6B;
+    }
+
+    .progress-bar-container {
+      margin-top: 4px;
+    }
+
+    .progress-label {
+      font-size: 12px;
+      color: #CCCCCC;
       margin-bottom: 4px;
     }
 
-    .progress-display {
-      font-size: 14px;
-      color: #CCCCCC;
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background-color: #2C2C2C;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #D4AF37, #FFD700);
+      border-radius: 4px;
+      transition: width 0.3s ease;
     }
 
     /* メインコンテンツ */
@@ -338,19 +381,55 @@
     .log-list {
       font-size: 13px;
       color: #CCCCCC;
-      line-height: 1.8;
+      line-height: 1.6;
     }
 
     .log-item {
-      padding: 4px 0;
+      padding: 8px 12px;
+      background-color: #2C2C2C;
+      margin-bottom: 6px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
     }
 
     .log-item .week {
       color: #888888;
+      font-size: 12px;
+      min-width: 50px;
     }
 
-    .log-item.success {
-      color: #2E7D32;
+    .log-item .action-name {
+      color: #D4AF37;
+      font-weight: bold;
+      min-width: 80px;
+    }
+
+    .log-item .result {
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: bold;
+      min-width: 40px;
+      text-align: center;
+    }
+
+    .log-item .result.success {
+      background-color: #1B5E20;
+      color: #81C784;
+    }
+
+    .log-item .result.failure {
+      background-color: #B71C1C;
+      color: #EF9A9A;
+    }
+
+    .log-item .detail {
+      color: #AAAAAA;
+      font-size: 12px;
+      flex: 1;
     }
   </style>
 </head>
@@ -363,8 +442,22 @@
         <div class="mission-info">敵勢力: 3〜5名 / 報酬功績: 30</div>
       </div>
       <div class="header-right">
-        <div class="week-display">1575年4月2週目</div>
-        <div class="progress-display">第2週 / 4週</div>
+        <div class="time-display">
+          <div class="current-time">
+            <span class="time-label">現在</span>
+            <span class="time-value">1575年4月2週目</span>
+          </div>
+          <div class="deadline-time">
+            <span class="time-label">期限</span>
+            <span class="time-value deadline">1575年4月4週目まで</span>
+          </div>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-label">進行: 第2週 / 4週（準備期間）</div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: 50%;"></div>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -496,10 +589,22 @@
       <h3 class="log-title">行動ログ</h3>
       <div class="log-list">
         <div class="log-item">
-          <span class="week">[第1週]</span> 足軽5名を雇用。戦力が増強された。
+          <span class="week">[第2週]</span>
+          <span class="action-name">偵察</span>
+          <span class="result success">成功</span>
+          <span class="detail">敵の詳細情報を入手。人数4名、戦闘力85と判明。</span>
         </div>
         <div class="log-item">
-          <span class="week">[開始]</span> 盗賊討伐（中規模）を開始。敵勢力5〜10名と推定。
+          <span class="week">[第1週]</span>
+          <span class="action-name">足軽雇用</span>
+          <span class="result success">成功</span>
+          <span class="detail">足軽5名を雇用。戦力+160。</span>
+        </div>
+        <div class="log-item">
+          <span class="week">[開始]</span>
+          <span class="action-name">任務開始</span>
+          <span class="result">―</span>
+          <span class="detail">盗賊討伐（中規模）を開始。期限: 4週間後。</span>
         </div>
       </div>
     </div>
