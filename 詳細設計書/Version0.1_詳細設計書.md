@@ -1293,6 +1293,42 @@ function calculateBanditReward(rank, banditCount) {
 
 ### 6-5. 盗賊討伐ミッションの詳細フロー
 
+#### 画面表示仕様
+
+```typescript
+interface BanditMissionDisplay {
+  // ヘッダー情報
+  missionName: string       // "盗賊討伐（中規模）"
+  enemyCount: string        // "3〜5名"
+  rewardMerit: number       // 30
+  
+  // 日時表示
+  currentDate: string       // "1575年4月2週目"
+  deadline: string          // "1575年4月4週目まで"
+  currentWeek: number       // 2
+  totalWeeks: number        // 4
+  phase: "準備期間" | "最終週"
+  
+  // 行動ログ
+  actionLog: ActionLogEntry[]
+}
+
+interface ActionLogEntry {
+  week: number | "開始"     // 行動した週
+  actionName: string        // "偵察", "足軽雇用", "任務開始"
+  result: "成功" | "失敗" | "―"
+  detail: string            // "敵の詳細情報を入手。人数4名、戦闘力85と判明。"
+}
+```
+
+#### 行動ログの表示例
+
+```
+[第2週] 偵察     [成功] 敵の詳細情報を入手。人数4名、戦闘力85と判明。
+[第1週] 足軽雇用 [成功] 足軽5名を雇用。戦力+160。
+[開始]  任務開始 [―]   盗賊討伐（中規模）を開始。期限: 4週間後。
+```
+
 #### 週ごとの行動選択肢
 
 ```
