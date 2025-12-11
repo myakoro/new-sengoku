@@ -26,7 +26,7 @@ export const MonthlyReportScreen: React.FC = () => {
             updatePlayer({ ...player })
         }
 
-        // 従僕が3名未満なら補充ステップへ
+        // 若党が3名未満なら補充ステップへ
         if (player.juuboku.length < 3) {
             const nextId = player.juuboku.length > 0
                 ? Math.max(...player.juuboku.map(j => j.id)) + 1
@@ -69,7 +69,7 @@ export const MonthlyReportScreen: React.FC = () => {
                         <div className="bg-sengoku-darker border border-sengoku-border p-4 mb-6">
                             <h3 className="text-sengoku-gold mb-2">【支出】</h3>
                             <div className="text-sm space-y-1">
-                                <div>従僕3名: -0.9石</div>
+                                <div>若党3名: -0.9石</div>
                                 <div>生活費: -0.15石</div>
                                 <div>合計: -1.05石</div>
                             </div>
@@ -186,12 +186,12 @@ export const MonthlyReportScreen: React.FC = () => {
                         <div className="bg-red-900 bg-opacity-20 border-2 border-red-500 p-4 mb-6">
                             <h3 className="text-red-400 mb-4 flex items-center gap-2">
                                 <span>⚠️</span>
-                                <span className="font-bold">従僕の補充</span>
+                                <span className="font-bold">若党の補充</span>
                             </h3>
 
                             <div className="text-sm space-y-3">
                                 <div className="bg-black bg-opacity-30 p-3 border-l-4 border-red-500">
-                                    <div className="text-sengoku-gray mb-1">現在の従僕:</div>
+                                    <div className="text-sengoku-gray mb-1">現在の若党:</div>
                                     <div className="text-red-400 font-bold">{player.juuboku.length}名（3名未満）</div>
                                 </div>
 

@@ -1,7 +1,7 @@
 import type { Juuboku } from '../types/game'
 
 /**
- * 従僕補充のコスト
+ * 若党補充のコスト
  */
 export const RETAINER_REPLACEMENT_COST = {
     money: 100,  // 100両
@@ -16,26 +16,26 @@ function randomInt(min: number, max: number): number {
 }
 
 /**
- * 補充用の従僕を生成
+ * 補充用の若党を生成
  */
 export function generateReplacementRetainer(nextId: number): Juuboku {
     return {
         id: nextId,
-        combat: randomInt(35, 55),  // 平均45（初期従僕よりやや低め）
+        combat: randomInt(35, 55),  // 平均45（初期若党よりやや低め）
         injuryStatus: 'normal',
         injuryWeeksRemaining: 0
     }
 }
 
 /**
- * 従僕を補充できるかチェック
+ * 若党を補充できるかチェック
  */
 export function canReplaceRetainer(
     currentJuubokuCount: number,
     money: number,
     rice: number
 ): boolean {
-    // 従僕が3名未満で、資金が足りる場合のみ補充可能
+    // 若党が3名未満で、資金が足りる場合のみ補充可能
     return currentJuubokuCount < 3 &&
         money >= RETAINER_REPLACEMENT_COST.money &&
         rice >= RETAINER_REPLACEMENT_COST.rice

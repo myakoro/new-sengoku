@@ -10,7 +10,7 @@ export function calculatePlayerCombatPower(
 ): number {
     let power = player.stats.combat
 
-    // 従僕（100%）
+    // 若党（100%）
     player.juuboku.forEach((j) => (power += j.combat))
 
     // 徒士（100%）
@@ -165,7 +165,7 @@ export function judgeBanditBattle(
 }
 
 /**
- * プレイヤーの戦闘力を計算（盗賊討伐専用 - 従僕100%）
+ * プレイヤーの戦闘力を計算（盗賊討伐専用 - 若党100%）
  */
 export function calculatePlayerCombatPowerForBandit(player: PlayerState): number {
     let power = player.stats.combat
@@ -175,7 +175,7 @@ export function calculatePlayerCombatPowerForBandit(player: PlayerState): number
         power += 10
     }
 
-    // 従僕の戦闘力（盗賊討伐では100%、負傷状態を考慮）
+    // 若党の戦闘力（盗賊討伐では100%、負傷状態を考慮）
     player.juuboku.forEach(j => {
         power += getRetainerCombatPower(j)
     })

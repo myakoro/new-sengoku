@@ -23,8 +23,8 @@ export function calculateExpenses(player: PlayerState): {
 } {
     let rice = 0
 
-    // 従僕の扶持米
-    rice += player.juuboku.length * RETAINER_RICE.従僕
+    // 若党の扶持米
+    rice += player.juuboku.length * RETAINER_RICE.若党
 
     // 徒士の扶持米
     rice += player.ashigaru.length * RETAINER_RICE.徒士

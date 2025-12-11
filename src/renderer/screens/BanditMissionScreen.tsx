@@ -236,7 +236,7 @@ export const BanditMissionScreen: React.FC = () => {
                     <div className="space-y-2 text-sm">
                         <div>戦力: {playerPower}</div>
                         <div>
-                            従僕: {player.juuboku.length}名
+                            若党: {player.juuboku.length}名
                             {(() => {
                                 const normal = player.juuboku.filter(j => j.injuryStatus === 'normal').length
                                 const light = player.juuboku.filter(j => j.injuryStatus === 'light').length

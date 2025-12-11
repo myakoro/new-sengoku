@@ -182,10 +182,10 @@ export const CharacterCreateScreen: React.FC = () => {
                     </div>
                 </div>
 
-                {/* 従僕情報 */}
+                {/* 若党情報 */}
                 <div className="bg-sengoku-dark border border-sengoku-border p-6 mb-6">
                     <h2 className="text-sengoku-gold text-base mb-2 pb-2 border-b border-sengoku-border">
-                        従僕（3名）
+                        若党（3名）
                     </h2>
                     <p className="text-xs text-gray-500 mb-3">
                         ※武芸は40〜60のランダム
@@ -196,7 +196,7 @@ export const CharacterCreateScreen: React.FC = () => {
                                 key={i}
                                 className="flex-1 p-4 bg-sengoku-darker border border-sengoku-border text-center"
                             >
-                                <div className="text-xs text-gray-500 mb-1">従僕{i + 1} 武芸</div>
+                                <div className="text-xs text-gray-500 mb-1">若党{i + 1} 武芸</div>
                                 <div className="text-lg font-mono">{combat}</div>
                             </div>
                         ))}
@@ -207,7 +207,7 @@ export const CharacterCreateScreen: React.FC = () => {
                             onClick={handleRerollJuuboku}
                             className="px-6 py-2 text-sm"
                         >
-                            従僕を振り直し
+                            若党を振り直し
                         </Button>
                     </div>
                 </div>

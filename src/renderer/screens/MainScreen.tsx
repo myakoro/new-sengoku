@@ -131,7 +131,7 @@ export const MainScreen: React.FC = () => {
                     <Panel title="家臣">
                         <div className="space-y-2">
                             <div className="flex justify-between text-sm">
-                                <span className="text-sengoku-gray">従僕</span>
+                                <span className="text-sengoku-gray">若党</span>
                                 <span className="font-mono">
                                     {player.juuboku.length}名
                                     {player.juuboku.length > 0 && (() => {

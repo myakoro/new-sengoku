@@ -19,7 +19,7 @@ export function getRetainerCombatPower(retainer: Juuboku | Ashigaru | BashoShu):
 export function processWeeklyInjuryRecovery(player: PlayerState): PlayerState {
     const updatedPlayer = { ...player }
 
-    // 従僕の回復処理
+    // 若党の回復処理
     updatedPlayer.juuboku = updatedPlayer.juuboku.map(j => {
         if (j.injuryWeeksRemaining > 0) {
             const remaining = j.injuryWeeksRemaining - 1
@@ -62,7 +62,7 @@ export function processWeeklyInjuryRecovery(player: PlayerState): PlayerState {
 }
 
 /**
- * 戦闘損失を従僕に適用
+ * 戦闘損失を若党に適用
  */
 export function applyBattleCasualties(
     retainers: Array<{ id: number; combat: number; injuryStatus: any; injuryWeeksRemaining: number }>,

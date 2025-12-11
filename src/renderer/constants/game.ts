@@ -9,7 +9,7 @@ export const SALARY_RICE: Record<Rank, number> = {
 
 // 家臣の扶持米（月額）
 export const RETAINER_RICE = {
-    従僕: 0.3,
+    若党: 0.3,
     徒士: 1.8,
     馬上衆: 3.5,
     小頭: 5.0,
@@ -216,7 +216,7 @@ export const CHAR_CREATE = {
     initialRatio: 0.8,
 }
 
-// 従僕初期生成
+// 若党初期生成
 export const INITIAL_JUUBOKU_COUNT = 3
 export const JUUBOKU_COMBAT_RANGE: [number, number] = [40, 60]
 
