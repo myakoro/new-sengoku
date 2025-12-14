@@ -43,8 +43,18 @@ export interface Ashigaru {
 export interface BashoShu {
     id: number
     combat: number
+    command: number
+    intelligence: number
+    administration: number
     injuryStatus: InjuryStatus
     injuryWeeksRemaining: number
+}
+
+export type FormationUnitType = 'juuboku' | 'ashigaru' | 'loanedAshigaru'
+
+export interface FormationSlot {
+    type: FormationUnitType
+    id: number
 }
 
 export interface PlayerState {
@@ -61,7 +71,9 @@ export interface PlayerState {
     interestRate: number
     juuboku: Juuboku[]
     ashigaru: Ashigaru[]
+    loanedAshigaru: Ashigaru[]
     bashoShu: BashoShu[]
+    formation: (FormationSlot | null)[]
     hasHorse: boolean
     week: number
     rankDEventShown: boolean
@@ -137,6 +149,8 @@ export interface BanditBattleState {
     playerUnits: BanditBattleUnitState[]
     enemyUnits: BanditBattleUnitState[]
     swapsRemaining: number
+    retreatsRemaining: number
+    promotesRemaining: number
     log: string[]
     attackType: 'normal' | 'night_raid'
     resolved: boolean

@@ -58,6 +58,19 @@ export function processWeeklyInjuryRecovery(player: PlayerState): PlayerState {
         return b
     })
 
+    // 貸与足軽の回復処理
+    updatedPlayer.loanedAshigaru = updatedPlayer.loanedAshigaru.map(a => {
+        if (a.injuryWeeksRemaining > 0) {
+            const remaining = a.injuryWeeksRemaining - 1
+            return {
+                ...a,
+                injuryWeeksRemaining: remaining,
+                injuryStatus: remaining === 0 ? 'normal' : a.injuryStatus
+            }
+        }
+        return a
+    })
+
     return updatedPlayer
 }
 

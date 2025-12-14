@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useGameStore } from '../store/gameStore'
 import { Button } from '../components/Button'
+import { Modal } from '../components/Modal'
 import { Panel } from '../components/Panel'
 import { StatBar } from '../components/StatBar'
 import { weekToDate, formatDate, isKochouEvaluationTurn } from '../utils/time'
@@ -11,6 +12,8 @@ import { applyScout, applyMisinformation, applyBribe, calculateStrategySuccessRa
 
 export const MainScreen: React.FC = () => {
     const { player, rival, mandate, mission, banditCards, evaluationTurnDone, logs, setCurrentScreen, setMission, addLog, removeBanditCard, updateBanditCard, updatePlayer, saveGame, loadGame } = useGameStore()
+
+    const [isUnitStatusModalOpen, setIsUnitStatusModalOpen] = useState(false)
 
     useEffect(() => {
         if (!player) return
@@ -28,6 +31,71 @@ export const MainScreen: React.FC = () => {
     }, [player?.merit, player?.rank, player?.week])
 
     if (!player || !rival) return <div>Loading...</div>
+
+    const unitStatusRows = useMemo(() => {
+        const getHpEq = (injuryStatus: any) => {
+            if (injuryStatus === 'severe') return 0
+            if (injuryStatus === 'light') return 80
+            return 100
+        }
+
+        const getInjuryLabel = (injuryStatus: any) => {
+            if (injuryStatus === 'severe') return '重傷'
+            if (injuryStatus === 'light') return '軽傷'
+            return '正常'
+        }
+
+        return [
+            ...player.juuboku.map((u) => ({
+                key: `juuboku-${u.id}`,
+                unitType: '若党',
+                name: `若党${u.id}`,
+                combat: u.combat,
+                command: u.command,
+                intelligence: u.intelligence,
+                administration: u.administration,
+                hpEq: getHpEq(u.injuryStatus),
+                injury: getInjuryLabel(u.injuryStatus),
+                weeks: u.injuryWeeksRemaining,
+            })),
+            ...player.ashigaru.map((u) => ({
+                key: `ashigaru-${u.id}`,
+                unitType: '徒士',
+                name: `徒士${u.id}`,
+                combat: u.combat,
+                command: null as number | null,
+                intelligence: null as number | null,
+                administration: null as number | null,
+                hpEq: getHpEq(u.injuryStatus),
+                injury: getInjuryLabel(u.injuryStatus),
+                weeks: u.injuryWeeksRemaining,
+            })),
+            ...player.loanedAshigaru.map((u) => ({
+                key: `loaned-ashigaru-${u.id}`,
+                unitType: '貸与足軽',
+                name: `貸与足軽${u.id}`,
+                combat: u.combat,
+                command: null as number | null,
+                intelligence: null as number | null,
+                administration: null as number | null,
+                hpEq: getHpEq(u.injuryStatus),
+                injury: getInjuryLabel(u.injuryStatus),
+                weeks: u.injuryWeeksRemaining,
+            })),
+            ...player.bashoShu.map((u) => ({
+                key: `bashoShu-${u.id}`,
+                unitType: '馬上衆',
+                name: `馬上衆${u.id}`,
+                combat: u.combat,
+                command: u.command,
+                intelligence: u.intelligence,
+                administration: u.administration,
+                hpEq: getHpEq(u.injuryStatus),
+                injury: getInjuryLabel(u.injuryStatus),
+                weeks: u.injuryWeeksRemaining,
+            })),
+        ]
+    }, [player.ashigaru, player.bashoShu, player.juuboku, player.loanedAshigaru])
 
     const gameTime = weekToDate(player.week)
     const meritDiff = player.merit - rival.merit
@@ -285,6 +353,10 @@ export const MainScreen: React.FC = () => {
                                 <span className="font-mono">{player.ashigaru.length}名</span>
                             </div>
                             <div className="flex justify-between text-sm">
+                                <span className="text-sengoku-gray">貸与足軽</span>
+                                <span className="font-mono">{player.loanedAshigaru.length}名</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
                                 <span className="text-sengoku-gray">馬上衆</span>
                                 <span className="font-mono">{player.bashoShu.length}名</span>
                             </div>
@@ -298,6 +370,22 @@ export const MainScreen: React.FC = () => {
                             >
                                 人事（若党雇用）
                             </Button>
+                            <Button
+                                variant="secondary"
+                                onClick={() => setIsUnitStatusModalOpen(true)}
+                                className="w-full text-xs mt-2"
+                            >
+                                家臣の状態
+                            </Button>
+                            {player.rank !== '徒士' && (
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => setCurrentScreen('formation')}
+                                    className="w-full text-xs mt-2"
+                                >
+                                    編成
+                                </Button>
+                            )}
                         </div>
                     </Panel>
                 </aside>
@@ -679,6 +767,47 @@ export const MainScreen: React.FC = () => {
                     )}
                 </aside>
             </div>
+
+            <Modal
+                isOpen={isUnitStatusModalOpen}
+                onClose={() => setIsUnitStatusModalOpen(false)}
+                title="家臣の状態"
+            >
+                <div className="text-xs text-sengoku-gray mb-3">
+                    ※戦闘中のHPとは別。負傷状態からの目安（正常=100/軽傷=80/重傷=0）
+                </div>
+
+                <div className="grid grid-cols-[1fr_70px_70px_70px_70px_70px_70px_90px] gap-2 text-sm">
+                    <div className="text-sengoku-gray">ユニット</div>
+                    <div className="text-sengoku-gray text-right">武芸</div>
+                    <div className="text-sengoku-gray text-right">統率</div>
+                    <div className="text-sengoku-gray text-right">知略</div>
+                    <div className="text-sengoku-gray text-right">政務</div>
+                    <div className="text-sengoku-gray text-right">HP目安</div>
+                    <div className="text-sengoku-gray text-right">状態</div>
+                    <div className="text-sengoku-gray text-right">回復まで</div>
+
+                    {unitStatusRows.map((r) => (
+                        <React.Fragment key={r.key}>
+                            <div>
+                                <span className="text-sengoku-gray mr-2">[{r.unitType}]</span>
+                                <span className="font-mono">{r.name}</span>
+                            </div>
+                            <div className="text-right font-mono">{r.combat}</div>
+                            <div className="text-right font-mono">{r.command == null ? '―' : r.command}</div>
+                            <div className="text-right font-mono">{r.intelligence == null ? '―' : r.intelligence}</div>
+                            <div className="text-right font-mono">{r.administration == null ? '―' : r.administration}</div>
+                            <div className="text-right font-mono">{r.hpEq}</div>
+                            <div className={`text-right ${r.injury === '正常' ? 'text-sengoku-gray' : 'text-sengoku-danger'}`}>{r.injury}</div>
+                            <div className="text-right font-mono">{r.weeks > 0 ? `${r.weeks}週` : '―'}</div>
+                        </React.Fragment>
+                    ))}
+
+                    {unitStatusRows.length === 0 && (
+                        <div className="col-span-8 text-center text-sengoku-gray py-6">家臣がいません</div>
+                    )}
+                </div>
+            </Modal>
         </div>
     )
 }

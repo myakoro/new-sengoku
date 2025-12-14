@@ -3,13 +3,13 @@ import { useGameStore } from '../store/gameStore'
 import { Button } from '../components/Button'
 import { Panel } from '../components/Panel'
 import { Modal } from '../components/Modal'
-import { calculatePlayerCombatPowerForBandit, calculateBanditCombatPower, calculateSuccessRate, judgeBanditBattle, initBanditBattleState, setBanditBattleUnitStance, swapBanditBattleUnits, retreatBanditBattleUnit, advanceBanditBattleTurn, judgeBanditBattleFromState, type BattleCasualties } from '../utils/combat'
+import { calculatePlayerCombatPowerForBandit, calculateBanditCombatPower, calculateSuccessRate, judgeBanditBattle, initBanditBattleState, setBanditBattleUnitStance, swapBanditBattleUnits, retreatBanditBattleUnit, promoteBanditBattleUnitToFront, advanceBanditBattleTurn, judgeBanditBattleFromState, type BattleCasualties } from '../utils/combat'
 import { applyScout, applyMisinformation, applyBribe, getStrategyCost, calculateStrategySuccessRate } from '../utils/bandit'
 import { BANDIT_RANKS, EXP_GAIN } from '../constants/game'
 import { formatDate, weekToDate, isKochouEvaluationTurn, isMonthlyProcessing } from '../utils/time'
 import { applyBattleCasualties } from '../utils/injury'
 import { addExperience } from '../utils/experience'
-import type { ActionLogEntry, CommandType, BattleStance } from '../types/game'
+import type { ActionLogEntry, CommandType, BattleStance, BanditBattleState } from '../types/game'
 
 export const BanditMissionScreen: React.FC = () => {
     const { player, mandate, mission, addLog, advanceWeek, updatePlayer, setCurrentScreen, markMandateSucceeded, removeBanditCard } = useGameStore()
@@ -21,6 +21,7 @@ export const BanditMissionScreen: React.FC = () => {
     const [selectedDelegationJuubokuId, setSelectedDelegationJuubokuId] = useState<number | null>(null)
     const [swapFrontId, setSwapFrontId] = useState<string>('')
     const [swapReserveId, setSwapReserveId] = useState<string>('')
+    const [promoteReserveId, setPromoteReserveId] = useState<string>('')
 
     if (!player || !mission || mission.type !== 'bandit_subjugation') {
         setCurrentScreen('main')
@@ -237,7 +238,10 @@ export const BanditMissionScreen: React.FC = () => {
             }
         }
 
-        updatedMission.strategies.push(selectedStrategy)
+        // 偵察は成功するまで「使用済み」にしない
+        if (selectedStrategy !== 'scout') {
+            updatedMission.strategies.push(selectedStrategy)
+        }
         updatedMission.currentWeek += 1
         useGameStore.setState({ mission: updatedMission })
         updatePlayer(updatedPlayer)
@@ -284,6 +288,28 @@ export const BanditMissionScreen: React.FC = () => {
             deaths: result.casualties.deaths - hiredAshigaruDeaths,
         }
 
+        const applyToLoanedThenJuuboku = (p: typeof player, casualties: BattleCasualties) => {
+            const updated = { ...p }
+
+            const loanedBeforeLen = updated.loanedAshigaru.length
+            const loanedAfter = applyBattleCasualties(updated.loanedAshigaru, casualties)
+            const deathsAppliedLoaned = Math.min(casualties.deaths, loanedBeforeLen)
+            const loanedSurvivorsLen = Math.max(0, loanedBeforeLen - deathsAppliedLoaned)
+            const severeAppliedLoaned = Math.min(casualties.severeInjuries, loanedSurvivorsLen)
+            const lightCapacityLoaned = Math.max(0, loanedSurvivorsLen - severeAppliedLoaned)
+            const lightAppliedLoaned = Math.min(casualties.lightInjuries, lightCapacityLoaned)
+
+            const remainingAfterLoaned: BattleCasualties = {
+                deaths: Math.max(0, casualties.deaths - deathsAppliedLoaned),
+                severeInjuries: Math.max(0, casualties.severeInjuries - severeAppliedLoaned),
+                lightInjuries: Math.max(0, casualties.lightInjuries - lightAppliedLoaned),
+            }
+
+            updated.loanedAshigaru = loanedAfter
+            updated.juuboku = applyBattleCasualties(updated.juuboku, remainingAfterLoaned)
+            return updated
+        }
+
         if (result.success) {
             const meritGain = BANDIT_RANKS[mission.rank].merit
             const bossReward = BANDIT_RANKS[mission.rank].bossReward
@@ -311,8 +337,9 @@ export const BanditMissionScreen: React.FC = () => {
             useGameStore.setState({ mission: { ...missionWithLog, battleState: null } })
             addLog(`盗賊討伐に成功！功績+${meritGain}`, 'success')
 
-            // 損失を反映（若党のみ）
-            updatedPlayer.juuboku = applyBattleCasualties(updatedPlayer.juuboku, remainingCasualties)
+            const afterLoss = applyToLoanedThenJuuboku(updatedPlayer, remainingCasualties)
+            updatedPlayer.juuboku = afterLoss.juuboku
+            updatedPlayer.loanedAshigaru = afterLoss.loanedAshigaru
 
             // 雇い足軽の死者は功績ペナルティ（下知達成/未達で変動）
             if (hiredAshigaruDeaths > 0) {
@@ -347,7 +374,9 @@ export const BanditMissionScreen: React.FC = () => {
             addLog('盗賊討伐に失敗した', 'danger')
 
             const updatedPlayer = { ...player }
-            updatedPlayer.juuboku = applyBattleCasualties(updatedPlayer.juuboku, remainingCasualties)
+            const afterLoss = applyToLoanedThenJuuboku(updatedPlayer, remainingCasualties)
+            updatedPlayer.juuboku = afterLoss.juuboku
+            updatedPlayer.loanedAshigaru = afterLoss.loanedAshigaru
 
             if (hiredAshigaruDeaths > 0) {
                 const perDeathPenalty = mandateAchieved ? 2 : 4
@@ -385,7 +414,7 @@ export const BanditMissionScreen: React.FC = () => {
         useGameStore.setState({ mission: { ...mission, battleState } })
     }
 
-    const battleState = mission.battleState ?? null
+    const battleState = (mission.battleState ?? null) as BanditBattleState | null
 
     const handleAdvanceBattleTurn = () => {
         if (!battleState) return
@@ -433,173 +462,191 @@ export const BanditMissionScreen: React.FC = () => {
         useGameStore.setState({ mission: { ...mission, battleState: next } })
     }
 
-const handleResultClose = () => {
-    useGameStore.setState({ mission: null, selectedCommand: null })
-    const currentTurn = useGameStore.getState().player?.week
-    const completedTurn = lastCompletedTurnRef.current ?? (currentTurn ? currentTurn - 1 : null)
+    const handlePromoteToFront = () => {
+        if (!battleState) return
+        if (battleState.resolved) return
 
-    if (completedTurn && isMonthlyProcessing(completedTurn)) {
-        setCurrentScreen('monthly-report')
-    } else if (currentTurn && isKochouEvaluationTurn(currentTurn)) {
-        setCurrentScreen('kochou-evaluation')
-    } else {
-        setCurrentScreen('main')
-    }
-}
+        const reserveId =
+            promoteReserveId ||
+            battleState.playerUnits.find((u) => u.position === 'reserve' && u.hp > 0)?.id ||
+            ''
+        if (!reserveId) return
 
-const handleAbort = () => {
-    useGameStore.setState({ mission: null, selectedCommand: null })
-    const currentTurn = useGameStore.getState().player?.week
-    if (currentTurn && isMonthlyProcessing(currentTurn)) {
-        setCurrentScreen('monthly-report')
-    } else if (currentTurn && isKochouEvaluationTurn(currentTurn)) {
-        setCurrentScreen('kochou-evaluation')
-    } else {
-        setCurrentScreen('main')
-    }
-}
-
-const canUseStrategy = (strategy: string) => {
-    if (delegatedThisTurn) return false
-    if (strategy === 'scout' && mission.bandit.investigated) return false
-    return !mission.strategies.includes(strategy as any)
-}
-
-const handleDelegateStrategy = (strategy: 'scout' | 'misinformation' | 'bribe' | 'hire') => {
-    if (battleState) return
-    if (delegatedThisTurn) return
-    if (strategy === 'scout' && mission.bandit.investigated) return
-
-    const actor = getSelectedJuuboku() ?? getBestJuubokuForIntelligence()
-    if (!actor) {
-        addLog('若党がいないため、委任できない', 'danger')
-        return
+        const next = promoteBanditBattleUnitToFront(battleState, reserveId)
+        useGameStore.setState({ mission: { ...mission, battleState: next } })
     }
 
-    const addDelegationLog = (
-        actionName: string,
-        result: "成功" | "失敗" | "―",
-        detail: string,
-        currentMission: typeof mission
-    ) => {
-        return addActionLog(actionName, result, detail, currentMission)
-    }
+    const handleResultClose = () => {
+        useGameStore.setState({ mission: null, selectedCommand: null })
+        const currentTurn = useGameStore.getState().player?.week
+        const completedTurn = lastCompletedTurnRef.current ?? (currentTurn ? currentTurn - 1 : null)
 
-    let updatedMission = { ...mission }
-    let updatedPlayer = { ...player }
-
-    // 若党の能力で成功率を算出するため、プレイヤーの知略だけ差し替えた仮プレイヤーを作る
-    const delegatedPlayer = {
-        ...player,
-        stats: {
-            ...player.stats,
-            intelligence: actor.intelligence,
-        },
-    }
-
-    if (strategy === 'scout') {
-        const { mission: missionAfter, success, successRate } = applyScout(updatedMission, delegatedPlayer)
-        updatedMission = missionAfter
-        if (success) {
-            const revealed = missionAfter.bandit
-            updatedMission = addDelegationLog(
-                '若党偵察',
-                '成功',
-                `若党${actor.id}が偵察に成功（成功率${Math.floor(successRate)}%）。人数${revealed.count}名、弱点:${revealed.weakness ?? '不明'}。`,
-                updatedMission
-            )
-            addLog(`若党${actor.id}が偵察成功（成功率${Math.floor(successRate)}%）`, 'success')
+        if (completedTurn && isMonthlyProcessing(completedTurn)) {
+            setCurrentScreen('monthly-report')
+        } else if (currentTurn && isKochouEvaluationTurn(currentTurn)) {
+            setCurrentScreen('kochou-evaluation')
         } else {
-            updatedMission = addDelegationLog(
-                '若党偵察',
-                '失敗',
-                `若党${actor.id}の偵察は失敗（成功率${Math.floor(successRate)}%）。`,
-                updatedMission
-            )
-            addLog(`若党${actor.id}が偵察失敗（成功率${Math.floor(successRate)}%）`, 'warning')
+            setCurrentScreen('main')
         }
     }
 
-    if (strategy === 'misinformation') {
-        const { mission: missionAfter, success, moraleDecrease, successRate } = applyMisinformation(updatedMission, delegatedPlayer)
-        updatedMission = missionAfter
-        if (success) {
-            updatedMission = addDelegationLog(
-                '若党偽情報',
-                '成功',
-                `若党${actor.id}が偽情報成功（成功率${Math.floor(successRate)}%）。敵士気-${moraleDecrease}。`,
-                updatedMission
-            )
-            addLog(`若党${actor.id}が偽情報成功（成功率${Math.floor(successRate)}%）`, 'success')
+    const handleAbort = () => {
+        useGameStore.setState({ mission: null, selectedCommand: null })
+        const currentTurn = useGameStore.getState().player?.week
+        if (currentTurn && isMonthlyProcessing(currentTurn)) {
+            setCurrentScreen('monthly-report')
+        } else if (currentTurn && isKochouEvaluationTurn(currentTurn)) {
+            setCurrentScreen('kochou-evaluation')
         } else {
-            updatedMission = addDelegationLog(
-                '若党偽情報',
-                '失敗',
-                `若党${actor.id}の偽情報は失敗（成功率${Math.floor(successRate)}%）。`,
-                updatedMission
-            )
-            addLog(`若党${actor.id}が偽情報失敗（成功率${Math.floor(successRate)}%）`, 'warning')
+            setCurrentScreen('main')
         }
     }
 
-    if (strategy === 'bribe') {
-        const rate = calculateStrategySuccessRate('bribe', delegatedPlayer, mission.bandit)
-        const bribeResult = applyBribe(updatedMission, updatedPlayer)
-        updatedMission = bribeResult.mission
-        updatedPlayer = bribeResult.player
-        if (bribeResult.success) {
-            updatedMission = addDelegationLog(
-                '若党買収',
-                '成功',
-                `若党${actor.id}が買収成功（成功率${Math.floor(rate)}%）。内応者を得た（敵戦力-10%扱い）。`,
-                updatedMission
-            )
-            addLog(`若党${actor.id}が買収成功（成功率${Math.floor(rate)}%）`, 'success')
-        } else {
-            const cost = getStrategyCost('bribe')
-            updatedMission = addDelegationLog(
-                '若党買収',
-                '失敗',
-                `若党${actor.id}の買収は失敗（成功率${Math.floor(rate)}%）。必要資金:${cost}貫。`,
-                updatedMission
-            )
-            addLog(`若党${actor.id}が買収失敗（成功率${Math.floor(rate)}%）`, 'warning')
-        }
+    const canUseStrategy = (strategy: string) => {
+        if (delegatedThisTurn) return false
+        // 偵察は「成功して調査済み」になるまで再試行できる
+        if (strategy === 'scout') return !mission.bandit.investigated
+        return !mission.strategies.includes(strategy as any)
     }
 
-    if (strategy === 'hire') {
-        const cost = getStrategyCost('hire')
-        const count = 5
-        if (updatedPlayer.money >= cost) {
-            updatedMission.additionalAshigaru += count
-            updatedPlayer.money -= cost
-            updatedMission = addDelegationLog(
-                '若党足軽雇用',
-                '成功',
-                `若党${actor.id}が足軽${count}名を雇用。戦力+${count * 32}。`,
-                updatedMission
-            )
-            addLog(`若党${actor.id}が足軽雇用成功`, 'success')
-        } else {
-            updatedMission = addDelegationLog(
-                '若党足軽雇用',
-                '失敗',
-                `若党${actor.id}の足軽雇用は失敗（資金不足：${cost}貫必要）`,
-                updatedMission
-            )
-            addLog(`若党${actor.id}が足軽雇用失敗（資金不足）`, 'warning')
+    const handleDelegateStrategy = (strategy: 'scout' | 'misinformation' | 'bribe' | 'hire') => {
+        if (battleState) return
+        if (delegatedThisTurn) return
+        if (strategy === 'scout' && mission.bandit.investigated) return
+
+        const actor = getSelectedJuuboku() ?? getBestJuubokuForIntelligence()
+        if (!actor) {
+            addLog('若党がいないため、委任できない', 'danger')
+            return
         }
+
+        const addDelegationLog = (
+            actionName: string,
+            result: '成功' | '失敗' | '―',
+            detail: string,
+            currentMission: typeof mission
+        ) => {
+            return addActionLog(actionName, result, detail, currentMission)
+        }
+
+        let updatedMission = { ...mission }
+        let updatedPlayer = { ...player }
+
+        // 若党の能力で成功率を算出するため、プレイヤーの知略だけ差し替えた仮プレイヤーを作る
+        const delegatedPlayer = {
+            ...player,
+            stats: {
+                ...player.stats,
+                intelligence: actor.intelligence,
+            },
+        }
+
+        if (strategy === 'scout') {
+            const { mission: missionAfter, success, successRate } = applyScout(updatedMission, delegatedPlayer)
+            updatedMission = missionAfter
+            if (success) {
+                const revealed = missionAfter.bandit
+                updatedMission = addDelegationLog(
+                    '若党偵察',
+                    '成功',
+                    `若党${actor.id}が偵察に成功（成功率${Math.floor(successRate)}%）。人数${revealed.count}名、弱点:${revealed.weakness ?? '不明'}。`,
+                    updatedMission
+                )
+                addLog(`若党${actor.id}が偵察成功（成功率${Math.floor(successRate)}%）`, 'success')
+            } else {
+                updatedMission = addDelegationLog(
+                    '若党偵察',
+                    '失敗',
+                    `若党${actor.id}の偵察は失敗（成功率${Math.floor(successRate)}%）。`,
+                    updatedMission
+                )
+                addLog(`若党${actor.id}が偵察失敗（成功率${Math.floor(successRate)}%）`, 'warning')
+            }
+        }
+
+        if (strategy === 'misinformation') {
+            const { mission: missionAfter, success, moraleDecrease, successRate } = applyMisinformation(updatedMission, delegatedPlayer)
+            updatedMission = missionAfter
+            if (success) {
+                updatedMission = addDelegationLog(
+                    '若党偽情報',
+                    '成功',
+                    `若党${actor.id}が偽情報成功（成功率${Math.floor(successRate)}%）。敵士気-${moraleDecrease}。`,
+                    updatedMission
+                )
+                addLog(`若党${actor.id}が偽情報成功（成功率${Math.floor(successRate)}%）`, 'success')
+            } else {
+                updatedMission = addDelegationLog(
+                    '若党偽情報',
+                    '失敗',
+                    `若党${actor.id}の偽情報は失敗（成功率${Math.floor(successRate)}%）。`,
+                    updatedMission
+                )
+                addLog(`若党${actor.id}が偽情報失敗（成功率${Math.floor(successRate)}%）`, 'warning')
+            }
+        }
+
+        if (strategy === 'bribe') {
+            const rate = calculateStrategySuccessRate('bribe', delegatedPlayer, mission.bandit)
+            const bribeResult = applyBribe(updatedMission, updatedPlayer)
+            updatedMission = bribeResult.mission
+            updatedPlayer = bribeResult.player
+            if (bribeResult.success) {
+                updatedMission = addDelegationLog(
+                    '若党買収',
+                    '成功',
+                    `若党${actor.id}が買収成功（成功率${Math.floor(rate)}%）。内応者を得た（敵戦力-10%扱い）。`,
+                    updatedMission
+                )
+                addLog(`若党${actor.id}が買収成功（成功率${Math.floor(rate)}%）`, 'success')
+            } else {
+                const cost = getStrategyCost('bribe')
+                updatedMission = addDelegationLog(
+                    '若党買収',
+                    '失敗',
+                    `若党${actor.id}の買収は失敗（成功率${Math.floor(rate)}%）。必要資金:${cost}貫。`,
+                    updatedMission
+                )
+                addLog(`若党${actor.id}が買収失敗（成功率${Math.floor(rate)}%）`, 'warning')
+            }
+        }
+
+        if (strategy === 'hire') {
+            const cost = getStrategyCost('hire')
+            const count = 5
+            if (updatedPlayer.money >= cost) {
+                updatedMission.additionalAshigaru += count
+                updatedPlayer.money -= cost
+                updatedMission = addDelegationLog(
+                    '若党足軽雇用',
+                    '成功',
+                    `若党${actor.id}が足軽${count}名を雇用。戦力+${count * 32}。`,
+                    updatedMission
+                )
+                addLog(`若党${actor.id}が足軽雇用成功`, 'success')
+            } else {
+                updatedMission = addDelegationLog(
+                    '若党足軽雇用',
+                    '失敗',
+                    `若党${actor.id}の足軽雇用は失敗（資金不足：${cost}貫必要）`,
+                    updatedMission
+                )
+                addLog(`若党${actor.id}が足軽雇用失敗（資金不足）`, 'warning')
+            }
+        }
+
+        // 偵察は成功するまで「使用済み」にしない
+        if (strategy !== 'scout') {
+            updatedMission.strategies = [...updatedMission.strategies, strategy]
+        }
+        updatedMission.currentWeek += 1
+        updatedMission.delegatedTurn = player.week
+
+        useGameStore.setState({ mission: updatedMission })
+        updatePlayer(updatedPlayer)
     }
 
-    updatedMission.strategies = [...updatedMission.strategies, strategy]
-    updatedMission.currentWeek += 1
-    updatedMission.delegatedTurn = player.week
-
-    useGameStore.setState({ mission: updatedMission })
-    updatePlayer(updatedPlayer)
-}
-
-return (
+    return (
     <div className="min-h-screen bg-sengoku-dark p-10">
         <div className="max-w-4xl mx-auto">
             <h1 className="text-2xl font-bold text-sengoku-gold mb-6">
@@ -826,6 +873,14 @@ return (
                         >
                             足軽雇用 ({hireCost}貫) {!canUseStrategy('hire') && '(使用済み)'}
                         </Button>
+
+                        <Button
+                            onClick={handleWait}
+                            disabled={delegatedThisTurn}
+                            variant="secondary"
+                        >
+                            様子を見る
+                        </Button>
                     </div>
                 </Panel>
             )}
@@ -835,7 +890,13 @@ return (
                 <Panel title={`決戦（第${battleState.turn}ターン）`}>
                     <div className="space-y-4">
                         <div className="text-xs text-sengoku-gray">
-                            交代残り: {battleState.swapsRemaining}（最大2） / 自軍士気: {battleState.playerMorale} / 敵士気: {battleState.enemyMorale}
+                            交代残り: {battleState.swapsRemaining}（最大2） / 下げる残り: {battleState.retreatsRemaining}（最大2） / 上げる残り: {battleState.promotesRemaining}（最大2） / 自軍士気: {battleState.playerMorale} / 敵士気: {battleState.enemyMorale}
+                        </div>
+
+                        <div className="border border-sengoku-border bg-sengoku-darker p-2">
+                            <Button onClick={handleAdvanceBattleTurn} className="w-full">
+                                ターン進行
+                            </Button>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
@@ -894,7 +955,7 @@ return (
                                                         variant="secondary"
                                                         className="text-xs"
                                                         onClick={() => handleRetreat(u.id)}
-                                                        disabled={battleState.swapsRemaining <= 0}
+                                                        disabled={battleState.retreatsRemaining <= 0}
                                                     >
                                                         下げる
                                                     </Button>
@@ -982,9 +1043,34 @@ return (
                         </div>
 
                         <div className="border-t border-sengoku-border pt-3">
-                            <Button onClick={handleAdvanceBattleTurn} className="w-full">
-                                ターン進行
-                            </Button>
+                            <div className="text-sm font-bold mb-2">前線投入（交代せず控え→前線）</div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <select
+                                    className="bg-sengoku-darker border border-sengoku-border px-2 py-1 text-xs"
+                                    value={promoteReserveId}
+                                    onChange={(e) => setPromoteReserveId(e.target.value)}
+                                >
+                                    <option value="">控えを選択</option>
+                                    {battleState.playerUnits
+                                        .filter((u) => u.position === 'reserve')
+                                        .map((u) => (
+                                            <option key={u.id} value={u.id}>
+                                                {u.name}
+                                            </option>
+                                        ))}
+                                </select>
+                                <Button
+                                    variant="secondary"
+                                    onClick={handlePromoteToFront}
+                                    disabled={
+                                        battleState.promotesRemaining <= 0 ||
+                                        battleState.playerUnits.filter((u) => u.position === 'reserve' && u.hp > 0).length === 0 ||
+                                        battleState.playerUnits.filter((u) => u.position === 'front' && u.hp > 0).length >= 5
+                                    }
+                                >
+                                    前線投入
+                                </Button>
+                            </div>
                         </div>
 
                         <div className="border-t border-sengoku-border pt-3">

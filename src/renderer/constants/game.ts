@@ -7,6 +7,13 @@ export const SALARY_RICE: Record<Rank, number> = {
     小頭: 5.0,
 }
 
+export const FORMATION_SLOT_COUNT = 7
+
+export const LOANED_ASHIGARU_GRANT = {
+    count: 5,
+    combat: 32,
+}
+
 // 家臣の扶持米（月額）
 export const RETAINER_RICE = {
     若党: 0.3,

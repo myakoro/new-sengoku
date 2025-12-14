@@ -16,6 +16,8 @@ import {
     CHAR_CREATE,
     INITIAL_JUUBOKU_COUNT,
     INITIAL_JUUBOKU_TOTAL_RANGE,
+    FORMATION_SLOT_COUNT,
+    LOANED_ASHIGARU_GRANT,
     COMMANDS,
 } from '../constants/game'
 import { processWeeklyInjuryRecovery } from '../utils/injury'
@@ -65,6 +67,62 @@ interface GameState {
     updateRival: (updates: Partial<RivalState>) => void
     saveGame: () => boolean
     loadGame: () => boolean
+}
+
+function ensureFormationSize(formation: any): (any | null)[] {
+    const base = Array.isArray(formation) ? [...formation] : []
+    const resized = base.slice(0, FORMATION_SLOT_COUNT)
+    while (resized.length < FORMATION_SLOT_COUNT) resized.push(null)
+    return resized
+}
+
+function sanitizePlayer(player: any): PlayerState {
+    const loanedAshigaru = Array.isArray(player?.loanedAshigaru) ? player.loanedAshigaru : []
+    const formation = ensureFormationSize(player?.formation)
+
+    const bashoShu = Array.isArray(player?.bashoShu)
+        ? player.bashoShu.map((b: any) => ({
+            ...b,
+            command: typeof b?.command === 'number' ? b.command : 0,
+            intelligence: typeof b?.intelligence === 'number' ? b.intelligence : 0,
+            administration: typeof b?.administration === 'number' ? b.administration : 0,
+        }))
+        : []
+
+    const juubokuIds = new Set((player?.juuboku ?? []).map((j: any) => j.id))
+    const ashigaruIds = new Set((player?.ashigaru ?? []).map((a: any) => a.id))
+    const loanedIds = new Set(loanedAshigaru.map((a: any) => a.id))
+
+    const sanitizedFormation = formation.map((slot: any) => {
+        if (!slot || typeof slot !== 'object') return null
+        if (slot.type === 'juuboku' && juubokuIds.has(slot.id)) return slot
+        if (slot.type === 'ashigaru' && ashigaruIds.has(slot.id)) return slot
+        if (slot.type === 'loanedAshigaru' && loanedIds.has(slot.id)) return slot
+        return null
+    })
+
+    return {
+        ...player,
+        loanedAshigaru,
+        bashoShu,
+        formation: sanitizedFormation,
+    }
+}
+
+function buildInitialFormation(player: PlayerState): (any | null)[] {
+    const formation = Array(FORMATION_SLOT_COUNT).fill(null)
+    let idx = 0
+    for (const j of player.juuboku) {
+        if (idx >= formation.length) break
+        formation[idx] = { type: 'juuboku', id: j.id }
+        idx++
+    }
+    for (const a of player.loanedAshigaru) {
+        if (idx >= formation.length) break
+        formation[idx] = { type: 'loanedAshigaru', id: a.id }
+        idx++
+    }
+    return formation
 }
 
 function randomInt(min: number, max: number): number {
@@ -157,7 +215,9 @@ export const useGameStore = create<GameState>((set, get) => ({
             interestRate: 0,
             juuboku,
             ashigaru: [],
+            loanedAshigaru: [],
             bashoShu: [],
+            formation: Array(FORMATION_SLOT_COUNT).fill(null),
             hasHorse: INITIAL_PLAYER.hasHorse,
             week: INITIAL_PLAYER.week,
             rankDEventShown: false,
@@ -414,10 +474,33 @@ export const useGameStore = create<GameState>((set, get) => ({
         set((state) => {
             if (!state.player) return state
 
+            const before = sanitizePlayer(state.player)
+            let next: PlayerState = { ...before, rank: newRank }
+
+            if (before.rank === '徒士' && newRank === '馬上衆') {
+                const existing = next.loanedAshigaru
+                const startId = existing.length > 0 ? Math.max(...existing.map((a) => a.id)) + 1 : 1
+                const granted = Array.from({ length: LOANED_ASHIGARU_GRANT.count }, (_, i) => ({
+                    id: startId + i,
+                    combat: LOANED_ASHIGARU_GRANT.combat,
+                    injuryStatus: 'normal' as const,
+                    injuryWeeksRemaining: 0,
+                }))
+
+                next = {
+                    ...next,
+                    loanedAshigaru: [...existing, ...granted],
+                }
+
+                const hasAnyFormation = Array.isArray(next.formation) && next.formation.some((s) => s != null)
+                if (!hasAnyFormation) {
+                    next = { ...next, formation: buildInitialFormation(next) }
+                }
+            }
+
             return {
                 player: {
-                    ...state.player,
-                    rank: newRank,
+                    ...sanitizePlayer(next),
                 },
             }
         })
@@ -427,10 +510,10 @@ export const useGameStore = create<GameState>((set, get) => ({
         set((state) => {
             if (!state.player) return state
 
+            const merged = { ...state.player, ...updates }
             return {
                 player: {
-                    ...state.player,
-                    ...updates,
+                    ...sanitizePlayer(merged),
                 },
             }
         })
@@ -477,7 +560,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             
             const saveData = JSON.parse(saved)
             set({
-                player: saveData.player,
+                player: saveData.player ? sanitizePlayer(saveData.player) : null,
                 rival: saveData.rival,
                 mission: saveData.mission,
                 banditCards: saveData.banditCards || [],

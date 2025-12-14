@@ -1,6 +1,6 @@
 import { PlayerState, MissionState, type BanditBattleState, type BanditBattleUnitState, type BattleStance } from '../types/game'
 import { getRetainerCombatPower } from './injury'
-import { NIGHT_RAID, HORSE_COMBAT_BONUS } from '../constants/game'
+import { FORMATION_SLOT_COUNT, NIGHT_RAID, HORSE_COMBAT_BONUS } from '../constants/game'
 
 /**
  * プレイヤーの戦闘力を計算
@@ -24,7 +24,6 @@ export function calculatePlayerCombatPower(
     if (mission) {
         power += mission.additionalAshigaru * 32
     }
-
     return Math.floor(power)
 }
 
@@ -68,6 +67,87 @@ export interface BattleCasualties {
 
 function clamp(n: number, min: number, max: number): number {
     return Math.max(min, Math.min(max, n))
+}
+
+function getBanditFormationUnits(player: PlayerState): { id: string; name: string; combat: number }[] {
+    const formation = Array.isArray((player as any).formation) ? (player as any).formation : []
+    const hasFormationConfig = formation.length >= FORMATION_SLOT_COUNT
+
+    const result: { id: string; name: string; combat: number }[] = []
+    const seen = new Set<string>()
+
+    const pushUnit = (key: string, unit: { id: string; name: string; combat: number } | null) => {
+        if (!unit) return
+        if (seen.has(key)) return
+        seen.add(key)
+        result.push(unit)
+    }
+
+    const resolveSlot = (slot: any): { id: string; name: string; combat: number } | null => {
+        if (!slot || typeof slot !== 'object') return null
+        if (slot.type === 'juuboku') {
+            const j = player.juuboku.find((x) => x.id === slot.id) ?? null
+            if (!j) return null
+            return { id: `juuboku-${j.id}`, name: `若党${j.id}`, combat: getRetainerCombatPower(j) }
+        }
+        if (slot.type === 'loanedAshigaru') {
+            const a = (player as any).loanedAshigaru?.find((x: any) => x.id === slot.id) ?? null
+            if (!a) return null
+            return { id: `loaned-ashigaru-${a.id}`, name: `貸与足軽${a.id}`, combat: getRetainerCombatPower(a) }
+        }
+        if (slot.type === 'ashigaru') {
+            const a = player.ashigaru.find((x) => x.id === slot.id) ?? null
+            if (!a) return null
+            return { id: `ashigaru-${a.id}`, name: `徒士${a.id}`, combat: getRetainerCombatPower(a) }
+        }
+        return null
+    }
+
+    if (hasFormationConfig) {
+        const loanedPool = ((player as any).loanedAshigaru ?? []) as any[]
+
+        const sliced = formation.slice(0, FORMATION_SLOT_COUNT)
+        const hasAnyExplicit = sliced.some((s: any) => s != null)
+
+        if (!hasAnyExplicit) {
+            // 編成がすべて空（未設定）なら従来どおり「若党+貸与足軽」を自動参加
+            for (const j of player.juuboku) {
+                const unit = { id: `juuboku-${j.id}`, name: `若党${j.id}`, combat: getRetainerCombatPower(j) }
+                pushUnit(unit.id, unit)
+            }
+            const loaned = (player as any).loanedAshigaru ?? []
+            for (const a of loaned) {
+                const unit = { id: `loaned-ashigaru-${a.id}`, name: `貸与足軽${a.id}`, combat: getRetainerCombatPower(a) }
+                pushUnit(unit.id, unit)
+            }
+            return result
+        }
+
+        // 1枠でも指定がある=プレイヤーが意図して編成している
+        // - 空枠は自動補充しない（人数を減らせる／編成どおりの参加人数）
+        for (const slot of sliced) {
+            const unit = resolveSlot(slot)
+            if (unit) {
+                pushUnit(unit.id, unit)
+                continue
+            }
+        }
+
+        return result
+    }
+
+    for (const j of player.juuboku) {
+        const unit = { id: `juuboku-${j.id}`, name: `若党${j.id}`, combat: getRetainerCombatPower(j) }
+        pushUnit(unit.id, unit)
+    }
+    const loaned = (player as any).loanedAshigaru ?? []
+    
+    
+    for (const a of loaned) {
+        const unit = { id: `loaned-ashigaru-${a.id}`, name: `貸与足軽${a.id}`, combat: getRetainerCombatPower(a) }
+        pushUnit(unit.id, unit)
+    }
+    return result
 }
 
 function randomInt(min: number, max: number): number {
@@ -172,6 +252,8 @@ function getFrontUnits(units: BanditBattleUnitState[]): BanditBattleUnitState[] 
     return units.filter((u) => u.position === 'front' && u.hp > 0)
 }
 
+const BANDIT_FRONT_SIZE = 5
+
 function applyDamageToFront(units: BanditBattleUnitState[], totalDamage: number): BanditBattleUnitState[] {
     const front = getFrontUnits(units)
     if (front.length === 0) return units
@@ -250,12 +332,12 @@ export function initBanditBattleState(
         position: 'reserve' as const,
     })
 
-    player.juuboku.forEach((j) => {
+    getBanditFormationUnits(player).forEach((u) => {
         playerUnits.push({
-            id: `juuboku-${j.id}`,
-            name: `若党${j.id}`,
+            id: u.id,
+            name: u.name,
             side: 'player',
-            combat: getRetainerCombatPower(j),
+            combat: u.combat,
             hp: 100,
             maxHp: 100,
             morale: 60,
@@ -325,6 +407,8 @@ export function initBanditBattleState(
         playerUnits: seededPlayerUnits,
         enemyUnits: seededEnemyUnits,
         swapsRemaining: 2,
+        retreatsRemaining: 2,
+        promotesRemaining: 2,
         log: ['戦闘開始'],
         attackType,
         resolved: false,
@@ -373,7 +457,7 @@ export function swapBanditBattleUnits(
 
 export function retreatBanditBattleUnit(state: BanditBattleState, frontUnitId: string): BanditBattleState {
     if (state.resolved) return state
-    if (state.swapsRemaining <= 0) return state
+    if (state.retreatsRemaining <= 0) return state
 
     const front = state.playerUnits.find((u) => u.id === frontUnitId)
     if (!front) return state
@@ -387,8 +471,30 @@ export function retreatBanditBattleUnit(state: BanditBattleState, frontUnitId: s
     return {
         ...state,
         playerUnits: updated,
-        swapsRemaining: state.swapsRemaining - 1,
+        retreatsRemaining: state.retreatsRemaining - 1,
         log: [`退避: ${front.name} を控えへ`, ...state.log],
+    }
+}
+
+export function promoteBanditBattleUnitToFront(state: BanditBattleState, reserveUnitId: string): BanditBattleState {
+    if (state.resolved) return state
+    if (state.promotesRemaining <= 0) return state
+
+    const reserve = state.playerUnits.find((u) => u.id === reserveUnitId)
+    if (!reserve) return state
+    if (reserve.position !== 'reserve') return state
+    if (reserve.hp <= 0) return state
+
+    const frontAlive = state.playerUnits.filter((u) => u.position === 'front' && u.hp > 0).length
+    if (frontAlive >= BANDIT_FRONT_SIZE) return state
+
+    const updated = state.playerUnits.map((u) => (u.id === reserveUnitId ? { ...u, position: 'front' as const } : u))
+
+    return {
+        ...state,
+        playerUnits: updated,
+        promotesRemaining: state.promotesRemaining - 1,
+        log: [`前線投入: ${reserve.name} を前線へ`, ...state.log],
     }
 }
 
@@ -463,6 +569,8 @@ export function advanceBanditBattleTurn(state: BanditBattleState, playerHasHorse
         ...state,
         turn: state.turn + 1,
         swapsRemaining: 2,
+        retreatsRemaining: 2,
+        promotesRemaining: 2,
         playerUnits: nextPlayerUnits,
         enemyUnits: nextEnemyUnits,
         playerMorale: playerMoraleAvg,
@@ -616,9 +724,8 @@ export function judgeBanditBattle(
 export function calculatePlayerCombatPowerForBandit(player: PlayerState): number {
     let power = player.stats.combat
 
-    // 若党の戦闘力（盗賊討伐では100%、負傷状態を考慮）
-    player.juuboku.forEach(j => {
-        power += getRetainerCombatPower(j)
+    getBanditFormationUnits(player).forEach((u) => {
+        power += u.combat
     })
 
     // 馬の効果（攻撃時×1.25）
