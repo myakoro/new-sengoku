@@ -3,10 +3,11 @@ import { useGameStore } from '../store/gameStore'
 import { Button } from '../components/Button'
 import { processMonthly, repayDebt } from '../utils/economy'
 import { generateReplacementRetainer, canReplaceRetainer, RETAINER_REPLACEMENT_COST } from '../utils/retainer'
-import { MAX_JUUBOKU_COUNT, RETAINER_RICE, LIVING_COST, HORSE_COST, SALARY_RICE } from '../constants/game'
+import { MAX_JUUBOKU_COUNT, RETAINER_RICE, LIVING_COST, HORSE_COST, SALARY_RICE, RICE_PRICE } from '../constants/game'
+import { isKochouEvaluationTurn } from '../utils/time'
 
 export const MonthlyReportScreen: React.FC = () => {
-    const { player, mission, updatePlayer, setCurrentScreen, promotePlayer } = useGameStore()
+    const { player, mission, evaluationTurnDone, updatePlayer, setCurrentScreen, promotePlayer } = useGameStore()
     const [step, setStep] = useState<'income' | 'rice' | 'debt' | 'replacement' | 'promotion' | 'done'>('income')
     const [replacementCandidate, setReplacementCandidate] = useState<any>(null)
     const [promotionRank, setPromotionRank] = useState<any>(null)
@@ -50,6 +51,11 @@ export const MonthlyReportScreen: React.FC = () => {
     const handleDone = () => {
         if (mission) {
             setCurrentScreen('bandit-mission')
+            return
+        }
+
+        if (isKochouEvaluationTurn(player.week) && evaluationTurnDone !== player.week) {
+            setCurrentScreen('kochou-evaluation')
             return
         }
 
@@ -100,32 +106,56 @@ export const MonthlyReportScreen: React.FC = () => {
                     <div>
                         <div className="bg-sengoku-darker border border-sengoku-border p-4 mb-6">
                             <h3 className="text-sengoku-gold mb-2">【余剰米の使い道】</h3>
-                            <div className="text-sm mb-4">
-                                余剰: {player.rice.toFixed(2)}石
-                            </div>
+                            {(() => {
+                                const salary = SALARY_RICE[player.rank]
+                                const expenses =
+                                    player.juuboku.length * RETAINER_RICE.若党 +
+                                    player.ashigaru.length * RETAINER_RICE.徒士 +
+                                    player.bashoShu.length * RETAINER_RICE.馬上衆 +
+                                    (player.hasHorse ? HORSE_COST : 0) +
+                                    LIVING_COST
+                                const riceAfterExpenses = Math.max(0, player.rice + salary - expenses)
+                                const gainedAll = riceAfterExpenses * RICE_PRICE
+                                const gainedHalf = riceAfterExpenses * 0.5 * RICE_PRICE
 
-                            <div className="space-y-2">
-                                <Button
-                                    onClick={() => handleRiceChoice('all')}
-                                    className="w-full"
-                                >
-                                    全て売却 (+{(player.rice * 1.0).toFixed(2)}貫)
-                                </Button>
-                                <Button
-                                    onClick={() => handleRiceChoice('half')}
-                                    className="w-full"
-                                    variant="secondary"
-                                >
-                                    半分売却 (+{(player.rice * 0.5 * 1.0).toFixed(2)}貫)
-                                </Button>
-                                <Button
-                                    onClick={() => handleRiceChoice('none')}
-                                    className="w-full"
-                                    variant="secondary"
-                                >
-                                    売却しない（備蓄）
-                                </Button>
-                            </div>
+                                return (
+                                    <>
+                                        <div className="text-sm mb-4 space-y-1">
+                                            <div>月初備蓄: {player.rice.toFixed(2)}石</div>
+                                            <div>扶持米: +{salary.toFixed(2)}石</div>
+                                            <div>支出: -{expenses.toFixed(2)}石</div>
+                                            <div>
+                                                支出後残（売却対象 / 備蓄含む）: {riceAfterExpenses.toFixed(2)}石
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Button
+                                                onClick={() => handleRiceChoice('all')}
+                                                className="w-full"
+                                                disabled={riceAfterExpenses <= 0}
+                                            >
+                                                全て売却 (+{gainedAll.toFixed(2)}貫)
+                                            </Button>
+                                            <Button
+                                                onClick={() => handleRiceChoice('half')}
+                                                className="w-full"
+                                                variant="secondary"
+                                                disabled={riceAfterExpenses <= 0}
+                                            >
+                                                半分売却 (+{gainedHalf.toFixed(2)}貫)
+                                            </Button>
+                                            <Button
+                                                onClick={() => handleRiceChoice('none')}
+                                                className="w-full"
+                                                variant="secondary"
+                                            >
+                                                売却しない（備蓄）
+                                            </Button>
+                                        </div>
+                                    </>
+                                )
+                            })()}
                         </div>
                     </div>
                 )}

@@ -136,10 +136,10 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({ commandName }) => {
 
     const nextTurn = completedTurn + 1
 
-    if (isKochouEvaluationTurn(nextTurn)) {
-      setCurrentScreen('kochou-evaluation')
-    } else if (isMonthlyProcessing(completedTurn)) {
+    if (isMonthlyProcessing(completedTurn)) {
       setCurrentScreen('monthly-report')
+    } else if (isKochouEvaluationTurn(nextTurn)) {
+      setCurrentScreen('kochou-evaluation')
     } else {
       setCurrentScreen('main')
     }

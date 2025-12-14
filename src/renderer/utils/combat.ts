@@ -281,7 +281,7 @@ export function initBanditBattleState(
         })
     }
 
-    const enemyUnitCount = Math.max(FRONT_SIZE, Math.min(12, bandit.count))
+    const enemyUnitCount = Math.max(1, Math.min(12, bandit.count))
     const enemyPerCombat = Math.max(1, Math.floor(bandit.baseCombatPower / enemyUnitCount))
     const enemyUnits: BanditBattleUnitState[] = Array.from({ length: enemyUnitCount }, (_, idx) => ({
         id: `bandit-${idx + 1}`,

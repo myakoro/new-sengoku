@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useGameStore } from '../store/gameStore'
 import { Button } from '../components/Button'
 import { Rank } from '../types/game'
-import { SALARY_RICE } from '../constants/game'
+import { PURCHASE_COSTS, SALARY_RICE } from '../constants/game'
 
 interface PromotionScreenProps {
     newRank?: Rank
@@ -53,14 +53,11 @@ export const PromotionScreen: React.FC<PromotionScreenProps> = ({ newRank: props
                         <h3 className="text-sengoku-gold mb-3">【変化】</h3>
                         <div className="text-sm space-y-2">
                             <div>
-                                扶持米: {oldSalary}石/月 → {newSalary}石/月
+                                扶持米: {oldSalary.toFixed(2)}石/月 → {newSalary.toFixed(2)}石/月
                             </div>
-                            <div>武芸: +15</div>
-                            <div>統率: +{newRank === '馬上衆' ? 10 : 15}</div>
-                            <div>知略: +10</div>
-                            <div>政務: +10</div>
-                            {newRank === '馬上衆' && <div>馬の購入が可能に</div>}
-                            {newRank === '小頭' && <div>指揮権: 25人小隊を指揮</div>}
+                            <div>能力値: 変化なし（v0.1仕様）</div>
+                            {newRank === '馬上衆' && <div>権限: 馬の購入が可能に</div>}
+                            {newRank === '小頭' && <div>権限: 25人小隊を指揮可能</div>}
                         </div>
                     </div>
                 </div>
@@ -71,8 +68,8 @@ export const PromotionScreen: React.FC<PromotionScreenProps> = ({ newRank: props
                             <h3 className="text-yellow-500 mb-2">⚠️ 推奨：馬と徒士の購入</h3>
                             <div className="text-sm text-sengoku-gray space-y-1">
                                 <div>馬上衆として活躍するには：</div>
-                                <div>・馬の購入（30貫）</div>
-                                <div>・徒士の雇用（雇用費10貫 + 扶持米1.8石/月）</div>
+                                <div>・馬の購入（{PURCHASE_COSTS.馬}貫）</div>
+                                <div>・徒士の雇用（雇用費{PURCHASE_COSTS.徒士雇用}貫 + 扶持米{SALARY_RICE.徒士.toFixed(2)}石/月）</div>
                                 <div className="mt-2 text-xs">※購入・雇用は任意です</div>
                             </div>
                         </div>

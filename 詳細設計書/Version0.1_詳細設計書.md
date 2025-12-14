@@ -2640,7 +2640,7 @@ interface ActionLogEntry {
 ├─ 偽情報
 ├─ 内応者買収
 ├─ 足軽を雇う
-└─ 様子を見る
+└─ （なし）
 
 最終ターン（決戦フェーズ）：
 ├─ 通常攻撃
@@ -2679,8 +2679,6 @@ function executeBanditMissionTurn(mission, player, action) {
         return executeStrategy("内応者買収", player, mission.bandit)
       case "足軽を雇う":
         return hireAshigaru(player, mission)
-      case "様子を見る":
-        return { success: true, message: "様子を見た" }
     }
   }
 }

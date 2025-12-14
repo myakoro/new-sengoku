@@ -438,10 +438,10 @@ const handleResultClose = () => {
     const currentTurn = useGameStore.getState().player?.week
     const completedTurn = lastCompletedTurnRef.current ?? (currentTurn ? currentTurn - 1 : null)
 
-    if (currentTurn && isKochouEvaluationTurn(currentTurn)) {
-        setCurrentScreen('kochou-evaluation')
-    } else if (completedTurn && isMonthlyProcessing(completedTurn)) {
+    if (completedTurn && isMonthlyProcessing(completedTurn)) {
         setCurrentScreen('monthly-report')
+    } else if (currentTurn && isKochouEvaluationTurn(currentTurn)) {
+        setCurrentScreen('kochou-evaluation')
     } else {
         setCurrentScreen('main')
     }
@@ -450,10 +450,10 @@ const handleResultClose = () => {
 const handleAbort = () => {
     useGameStore.setState({ mission: null, selectedCommand: null })
     const currentTurn = useGameStore.getState().player?.week
-    if (currentTurn && isKochouEvaluationTurn(currentTurn)) {
-        setCurrentScreen('kochou-evaluation')
-    } else if (currentTurn && isMonthlyProcessing(currentTurn)) {
+    if (currentTurn && isMonthlyProcessing(currentTurn)) {
         setCurrentScreen('monthly-report')
+    } else if (currentTurn && isKochouEvaluationTurn(currentTurn)) {
+        setCurrentScreen('kochou-evaluation')
     } else {
         setCurrentScreen('main')
     }
@@ -466,6 +466,7 @@ const canUseStrategy = (strategy: string) => {
 }
 
 const handleDelegateStrategy = (strategy: 'scout' | 'misinformation' | 'bribe' | 'hire') => {
+    if (battleState) return
     if (delegatedThisTurn) return
     if (strategy === 'scout' && mission.bandit.investigated) return
 
@@ -640,7 +641,7 @@ return (
             </Panel>
 
             {/* 若党委任（準備行動） */}
-            {!isLastWeek && (
+            {!isLastWeek && !battleState && (
                 <Panel title="若党委任（準備行動）">
                     <div className="space-y-3">
                         <div className="text-xs text-sengoku-gray">
@@ -1010,11 +1011,6 @@ return (
                 <Button variant="secondary" onClick={handleAbort}>
                     中止
                 </Button>
-                {!isLastWeek && (
-                    <Button onClick={handleWait} disabled={delegatedThisTurn}>
-                        様子を見る
-                    </Button>
-                )}
                 {canAutoBattle && (
                     <Button
                         variant="secondary"
