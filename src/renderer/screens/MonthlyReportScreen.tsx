@@ -3,19 +3,18 @@ import { useGameStore } from '../store/gameStore'
 import { Button } from '../components/Button'
 import { processMonthly, repayDebt } from '../utils/economy'
 import { generateReplacementRetainer, canReplaceRetainer, RETAINER_REPLACEMENT_COST } from '../utils/retainer'
+import { MAX_JUUBOKU_COUNT, RETAINER_RICE, LIVING_COST, HORSE_COST, SALARY_RICE } from '../constants/game'
 
 export const MonthlyReportScreen: React.FC = () => {
-    const { player, updatePlayer, setCurrentScreen, promotePlayer } = useGameStore()
+    const { player, mission, updatePlayer, setCurrentScreen, promotePlayer } = useGameStore()
     const [step, setStep] = useState<'income' | 'rice' | 'debt' | 'replacement' | 'promotion' | 'done'>('income')
-    const [monthlyData, setMonthlyData] = useState<any>(null)
     const [replacementCandidate, setReplacementCandidate] = useState<any>(null)
     const [promotionRank, setPromotionRank] = useState<any>(null)
 
     if (!player) return <div>Loading...</div>
 
     const handleRiceChoice = (choice: 'all' | 'half' | 'none') => {
-        const data = processMonthly(player, choice)
-        setMonthlyData(data)
+        processMonthly(player, choice)
         updatePlayer({ ...player })
         setStep('debt')
     }
@@ -26,8 +25,8 @@ export const MonthlyReportScreen: React.FC = () => {
             updatePlayer({ ...player })
         }
 
-        // 若党が3名未満なら補充ステップへ
-        if (player.juuboku.length < 3) {
+        // 若党が上限未満なら補充ステップへ
+        if (player.juuboku.length < MAX_JUUBOKU_COUNT) {
             const nextId = player.juuboku.length > 0
                 ? Math.max(...player.juuboku.map(j => j.id)) + 1
                 : 1
@@ -49,6 +48,11 @@ export const MonthlyReportScreen: React.FC = () => {
     }
 
     const handleDone = () => {
+        if (mission) {
+            setCurrentScreen('bandit-mission')
+            return
+        }
+
         setCurrentScreen('main')
     }
 
@@ -63,15 +67,26 @@ export const MonthlyReportScreen: React.FC = () => {
                     <div>
                         <div className="bg-sengoku-darker border border-sengoku-border p-4 mb-6">
                             <h3 className="text-sengoku-gold mb-2">【収入】</h3>
-                            <div className="text-sm">扶持米: +1.8石</div>
+                            <div className="text-sm">扶持米: +{SALARY_RICE[player.rank].toFixed(2)}石</div>
                         </div>
 
                         <div className="bg-sengoku-darker border border-sengoku-border p-4 mb-6">
                             <h3 className="text-sengoku-gold mb-2">【支出】</h3>
                             <div className="text-sm space-y-1">
-                                <div>若党3名: -0.9石</div>
-                                <div>生活費: -0.15石</div>
-                                <div>合計: -1.05石</div>
+                                <div>若党{player.juuboku.length}名: -{(player.juuboku.length * RETAINER_RICE.若党).toFixed(2)}石</div>
+                                <div>徒士{player.ashigaru.length}名: -{(player.ashigaru.length * RETAINER_RICE.徒士).toFixed(2)}石</div>
+                                <div>馬上衆{player.bashoShu.length}名: -{(player.bashoShu.length * RETAINER_RICE.馬上衆).toFixed(2)}石</div>
+                                {player.hasHorse && <div>馬維持費: -{HORSE_COST.toFixed(2)}石</div>}
+                                <div>生活費: -{LIVING_COST.toFixed(2)}石</div>
+                                <div>
+                                    合計: -{(
+                                        player.juuboku.length * RETAINER_RICE.若党 +
+                                        player.ashigaru.length * RETAINER_RICE.徒士 +
+                                        player.bashoShu.length * RETAINER_RICE.馬上衆 +
+                                        (player.hasHorse ? HORSE_COST : 0) +
+                                        LIVING_COST
+                                    ).toFixed(2)}石
+                                </div>
                             </div>
                         </div>
 
@@ -167,7 +182,7 @@ export const MonthlyReportScreen: React.FC = () => {
                         </div>
                         <div className="text-center">
                             <Button onClick={() => {
-                                if (player.juuboku.length < 3) {
+                                if (player.juuboku.length < MAX_JUUBOKU_COUNT) {
                                     const nextId = player.juuboku.length > 0
                                         ? Math.max(...player.juuboku.map(j => j.id)) + 1
                                         : 1
@@ -192,7 +207,7 @@ export const MonthlyReportScreen: React.FC = () => {
                             <div className="text-sm space-y-3">
                                 <div className="bg-black bg-opacity-30 p-3 border-l-4 border-red-500">
                                     <div className="text-sengoku-gray mb-1">現在の若党:</div>
-                                    <div className="text-red-400 font-bold">{player.juuboku.length}名（3名未満）</div>
+                                    <div className="text-red-400 font-bold">{player.juuboku.length}名（{MAX_JUUBOKU_COUNT}名未満）</div>
                                 </div>
 
                                 <div className="bg-green-900 bg-opacity-10 p-3 border-l-4 border-green-500">
@@ -202,12 +217,12 @@ export const MonthlyReportScreen: React.FC = () => {
 
                                 <div className="bg-black bg-opacity-30 p-3">
                                     <div className="text-sengoku-gray mb-1">費用:</div>
-                                    <div className="text-yellow-400">金{RETAINER_REPLACEMENT_COST.money}両、米{RETAINER_REPLACEMENT_COST.rice}石</div>
+                                    <div className="text-yellow-400">金{RETAINER_REPLACEMENT_COST.money}貫、米{RETAINER_REPLACEMENT_COST.rice}石</div>
                                 </div>
 
                                 <div className="bg-black bg-opacity-30 p-3">
                                     <div className="text-sengoku-gray mb-1">現在の資金:</div>
-                                    <div>金{player.money.toFixed(2)}両、米{player.rice.toFixed(2)}石</div>
+                                    <div>金{player.money.toFixed(2)}貫、米{player.rice.toFixed(2)}石</div>
                                 </div>
                             </div>
                         </div>

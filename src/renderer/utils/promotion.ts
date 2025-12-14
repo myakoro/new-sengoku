@@ -5,10 +5,19 @@ import { PROMOTION_REQUIREMENTS } from '../constants/game'
  * 出世判定
  */
 export function checkPromotion(player: PlayerState): '馬上衆' | '小頭' | null {
-    if (player.rank === '徒士' && player.merit >= PROMOTION_REQUIREMENTS.徒士_to_馬上衆) {
+    if (
+        player.rank === '徒士' &&
+        player.merit >= PROMOTION_REQUIREMENTS.徒士_to_馬上衆.merit &&
+        player.stats.combat >= PROMOTION_REQUIREMENTS.徒士_to_馬上衆.minCombat
+    ) {
         return '馬上衆'
     }
-    if (player.rank === '馬上衆' && player.merit >= PROMOTION_REQUIREMENTS.馬上衆_to_小頭) {
+
+    if (
+        player.rank === '馬上衆' &&
+        player.merit >= PROMOTION_REQUIREMENTS.馬上衆_to_小頭_通常.merit &&
+        player.stats.combat >= PROMOTION_REQUIREMENTS.馬上衆_to_小頭_通常.minCombat
+    ) {
         return '小頭'
     }
     return null
@@ -27,7 +36,7 @@ export function decideRivalAction(rival: RivalState): {
     const actions = [
         { name: '訓練', merit: 5, weight: behavior === 'aggressive' ? 2 : 1 },
         { name: '巡察', merit: 3, weight: behavior === 'balanced' ? 2 : 1 },
-        { name: '情報収集', merit: 5, weight: behavior === 'cautious' ? 2 : 1 },
+        { name: '情報収集', merit: 5, weight: behavior === 'safe' ? 2 : 1 },
         { name: '護衛任務', merit: 8, weight: behavior === 'aggressive' ? 3 : 1 },
     ]
 
@@ -45,7 +54,10 @@ export function decideRivalAction(rival: RivalState): {
         }
     }
 
-    return actions[0]
+    return {
+        action: actions[0].name,
+        meritGain: actions[0].merit,
+    }
 }
 
 /**

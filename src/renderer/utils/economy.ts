@@ -1,10 +1,12 @@
-import { PlayerState, RivalState, Rank } from '../types/game'
+import { PlayerState, Rank } from '../types/game'
 import {
     SALARY_RICE,
     RETAINER_RICE,
     LIVING_COST,
     HORSE_COST,
     RICE_PRICE,
+    DEBT_LIMIT,
+    INTEREST_RATE_BY_AMOUNT,
 } from '../constants/game'
 
 /**
@@ -121,4 +123,73 @@ export function repayDebt(
     player.debt -= repaid
 
     return { repaid, remaining: player.debt }
+}
+
+/**
+ * 借金上限を取得
+ */
+export function getDebtLimit(rank: Rank): number {
+    return DEBT_LIMIT[rank]
+}
+
+/**
+ * 金利を取得（借入額で変動）
+ * 将来は商人との親密度で上限・金利が変動予定
+ */
+export function getInterestRate(amount: number): number {
+    if (amount <= INTEREST_RATE_BY_AMOUNT.tier1.maxAmount) {
+        return INTEREST_RATE_BY_AMOUNT.tier1.rate  // 50貫まで：月5%
+    }
+    return INTEREST_RATE_BY_AMOUNT.tier2.rate  // 100貫まで：月4%
+}
+
+/**
+ * 借金を実行
+ */
+export function takeLoan(
+    player: PlayerState,
+    amount: number,
+    monthlyRepayment: number
+): { success: boolean; rate: number; message?: string } {
+    const limit = getDebtLimit(player.rank)
+    
+    if (player.debt + amount > limit) {
+        return { 
+            success: false, 
+            rate: 0, 
+            message: `借金上限（${limit.toFixed(1)}貫）を超えています` 
+        }
+    }
+    
+    const rate = getInterestRate(player.debt + amount)
+    
+    player.debt += amount
+    player.money += amount
+    player.monthlyRepayment = monthlyRepayment
+    player.interestRate = rate
+    
+    return { success: true, rate }
+}
+
+/**
+ * 月次の利子計算と自動返済
+ */
+export function processMonthlyDebt(player: PlayerState): {
+    interestAdded: number
+    repaid: number
+} {
+    // 利子を加算
+    const interestAdded = player.debt * player.interestRate
+    player.debt += interestAdded
+    
+    // 設定された月額を返済
+    const repayAmount = player.monthlyRepayment
+    if (repayAmount > 0 && player.money >= repayAmount) {
+        const actualRepay = Math.min(repayAmount, player.debt)
+        player.money -= actualRepay
+        player.debt -= actualRepay
+        return { interestAdded, repaid: actualRepay }
+    }
+    
+    return { interestAdded, repaid: 0 }
 }

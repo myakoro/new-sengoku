@@ -4,6 +4,15 @@ import { Button } from '../components/Button'
 
 export const TitleScreen: React.FC = () => {
     const setCurrentScreen = useGameStore((state) => state.setCurrentScreen)
+    const loadGame = useGameStore((state) => state.loadGame)
+
+    const handleContinue = () => {
+        if (loadGame()) {
+            // ロード成功
+        } else {
+            alert('セーブデータがありません')
+        }
+    }
 
     return (
         <div className="min-h-screen bg-sengoku-darker flex flex-col items-center justify-center">
@@ -26,7 +35,7 @@ export const TitleScreen: React.FC = () => {
                     >
                         新規ゲーム
                     </Button>
-                    <Button variant="secondary" disabled className="w-72">
+                    <Button variant="secondary" onClick={handleContinue} className="w-72">
                         続きから
                     </Button>
                     <Button variant="secondary" disabled className="w-72">

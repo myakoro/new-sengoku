@@ -2,7 +2,7 @@ import { Rank, BanditRank, Command, AIBehavior } from '../types/game'
 
 // 扶持米（月額）
 export const SALARY_RICE: Record<Rank, number> = {
-    徒士: 1.8,
+    徒士: 1.2,
     馬上衆: 3.5,
     小頭: 5.0,
 }
@@ -10,20 +10,27 @@ export const SALARY_RICE: Record<Rank, number> = {
 // 家臣の扶持米（月額）
 export const RETAINER_RICE = {
     若党: 0.3,
-    徒士: 1.8,
+    徒士: 1.2,
     馬上衆: 3.5,
     小頭: 5.0,
 }
 
 // その他支出
 export const LIVING_COST = 0.15 // 生活費（月額）
-export const HORSE_COST = 0.3 // 馬維持費（月額）
+export const HORSE_COST = 0.6 // 馬維持費（月額）
 
-// 借金上限
+// 借金上限（年収相当）
 export const DEBT_LIMIT: Record<Rank, number> = {
-    徒士: 10,
-    馬上衆: 50,
-    小頭: 100,
+    徒士: 14.4,      // 1.2石×12ヶ月
+    馬上衆: 42,      // 3.5石×12ヶ月
+    小頭: 60,        // 5石×12ヶ月
+}
+
+// 借金金利（月利、借入額で変動）
+// 将来は商人との親密度で上限・金利が変動予定
+export const INTEREST_RATE_BY_AMOUNT = {
+    tier1: { maxAmount: 50, rate: 0.05 },   // 50貫まで：月5%
+    tier2: { maxAmount: 100, rate: 0.04 },  // 100貫まで：月4%
 }
 
 // 出世条件
@@ -42,20 +49,9 @@ export const PROMOTION_REQUIREMENTS = {
 }
 
 // 昇進時のステータス成長
-export const PROMOTION_BONUS = {
-    徒士_to_馬上衆: {
-        combat: 15,
-        command: 10,
-        intelligence: 10,
-        administration: 10,
-    },
-    馬上衆_to_小頭: {
-        combat: 15,
-        command: 15,
-        intelligence: 10,
-        administration: 10,
-    },
-}
+// Version 0.1では昇進ボーナスなし（詳細設計書 4-4節準拠）
+// 能力値は訓練・実戦・計略などの経験によってのみ成長する
+// export const PROMOTION_BONUS = {} // 未使用
 
 // 経験値獲得量
 export const EXP_GAIN = {
@@ -90,6 +86,13 @@ export const COMMANDS: Record<string, Command> = {
         merit: 5,
         expGain: { combat: 5 },
     },
+    全体訓練: {
+        name: '全体訓練',
+        duration: 1,
+        merit: 0,
+        expGain: { combat: 5 },
+        hidden: true,
+    },
     巡察: {
         name: '巡察',
         duration: 1,
@@ -101,6 +104,13 @@ export const COMMANDS: Record<string, Command> = {
         merit: 5,
         expGain: { intelligence: 10 },
     },
+    賊軍偵察: {
+        name: '賊軍偵察',
+        duration: 1,
+        merit: 0,
+        expGain: { intelligence: 15 },
+        hidden: true,
+    },
     護衛任務: {
         name: '護衛任務',
         duration: 1,
@@ -108,27 +118,27 @@ export const COMMANDS: Record<string, Command> = {
     },
     '盗賊討伐（小規模）': {
         name: '盗賊討伐（小規模）',
-        duration: 2,
-        merit: 8,
+        duration: 4,
+        merit: 15,
         banditRank: 'D',
     },
     '盗賊討伐（中規模）': {
         name: '盗賊討伐（中規模）',
         duration: 4,
-        merit: 15,
+        merit: 30,
         banditRank: 'C',
     },
     '盗賊討伐（大規模）': {
         name: '盗賊討伐（大規模）',
         duration: 4,
-        merit: 30,
+        merit: 40,
         banditRank: 'B',
         requireRank: '馬上衆',
     },
     '盗賊討伐（討伐戦）': {
         name: '盗賊討伐（討伐戦）',
         duration: 4,
-        merit: 50,
+        merit: 60,
         banditRank: 'A',
         requireRank: '馬上衆',
     },
@@ -148,6 +158,9 @@ export const BANDIT_RANKS: Record<
         count: [number, number]
         combatRange?: [number, number]
         baseCombat?: number
+        moraleRange: [number, number]
+        ricePerBanditRange: [number, number]
+        moneyRatio: number
         merit: number
         bossReward: { rice: number; money: number }
     }
@@ -155,30 +168,45 @@ export const BANDIT_RANKS: Record<
     D: {
         count: [1, 2],
         combatRange: [15, 50],
+        moraleRange: [30, 40],
+        ricePerBanditRange: [0.01, 0.02],
+        moneyRatio: 0.3,
         merit: 15,
         bossReward: { rice: 0.05, money: 0.025 },
     },
     C: {
         count: [3, 5],
         combatRange: [70, 110],
+        moraleRange: [35, 45],
+        ricePerBanditRange: [0.03, 0.06],
+        moneyRatio: 0.4,
         merit: 30,
         bossReward: { rice: 0.075, money: 0.05 },
     },
     B: {
         count: [6, 10],
         combatRange: [150, 250],
+        moraleRange: [40, 50],
+        ricePerBanditRange: [0.05, 0.08],
+        moneyRatio: 0.5,
         merit: 40,
         bossReward: { rice: 0.125, money: 0.075 },
     },
     A: {
         count: [11, 15],
         combatRange: [300, 450],
+        moraleRange: [45, 55],
+        ricePerBanditRange: [0.08, 0.12],
+        moneyRatio: 0.6,
         merit: 60,
         bossReward: { rice: 0.25, money: 0.125 },
     },
     S: {
         count: [20, 25],
         baseCombat: 800,
+        moraleRange: [40, 50],
+        ricePerBanditRange: [0.12, 0.18],
+        moneyRatio: 0.7,
         merit: 80,
         bossReward: { rice: 0.75, money: 0.5 },
     },
@@ -217,8 +245,24 @@ export const CHAR_CREATE = {
 }
 
 // 若党初期生成
-export const INITIAL_JUUBOKU_COUNT = 3
-export const JUUBOKU_COMBAT_RANGE: [number, number] = [40, 60]
+// 別紙E準拠：初期若党は能力合計230〜280で生成（特例で高水準）
+// 若党は4ステータス（武芸・統率・知略・政務）を持つ
+export const INITIAL_JUUBOKU_COUNT = 2
+export const MAX_JUUBOKU_COUNT = 2
+export const INITIAL_JUUBOKU_TOTAL_RANGE: [number, number] = [230, 280]
+
+// 若党雇用システム
+export const JUUBOKU_RECRUITMENT = {
+    maxCount: 2,
+    refreshCost: 0.2,
+    refreshPerMonth: 1,
+    candidateCount: {
+        徒士: [2, 3] as [number, number],
+        馬上衆: [3, 4] as [number, number],
+        小頭: [4, 5] as [number, number],
+    },
+    generalTotalRange: [200, 270] as [number, number],
+}
 
 // プレイヤー初期状態
 export const INITIAL_PLAYER = {
@@ -236,6 +280,18 @@ export const RICE_PRICE = 1.0 // 米1石 = 1貫
 
 // 購入費用
 export const PURCHASE_COSTS = {
-    馬: 30,
-    徒士雇用: 10,
+    馬: 8,
+    徒士雇用: 4,
+}
+
+// 馬による戦闘補正
+export const HORSE_COMBAT_BONUS = {
+    // 攻撃時の戦闘力補正（1.2→1.5、つまり×1.25）
+    attackMultiplier: 1.25,
+    // 平常・防御時の疲労軽減
+    fatigueReduction: 1,
+    // 追撃時の手柄確率補正
+    pursuitMeritMultiplier: 1.5,
+    // 撤退時の被害軽減
+    retreatDamageMultiplier: 0.6,
 }

@@ -2,7 +2,8 @@ import React, { useState } from 'react'
 import { useGameStore } from '../store/gameStore'
 import { Button } from '../components/Button'
 import { Stats } from '../types/game'
-import { CHAR_CREATE, JUUBOKU_COMBAT_RANGE } from '../constants/game'
+import { CHAR_CREATE, INITIAL_JUUBOKU_COUNT, INITIAL_JUUBOKU_TOTAL_RANGE } from '../constants/game'
+import { distributeJuubokuStats } from '../utils/juuboku'
 
 function randomInt(min: number, max: number): number {
     return Math.floor(Math.random() * (max - min + 1)) + min
@@ -47,11 +48,20 @@ export const CharacterCreateScreen: React.FC = () => {
         intelligence: 80,
         administration: 70
     })
-    const [juuboku, setJuuboku] = useState([
-        randomInt(JUUBOKU_COMBAT_RANGE[0], JUUBOKU_COMBAT_RANGE[1]),
-        randomInt(JUUBOKU_COMBAT_RANGE[0], JUUBOKU_COMBAT_RANGE[1]),
-        randomInt(JUUBOKU_COMBAT_RANGE[0], JUUBOKU_COMBAT_RANGE[1]),
-    ])
+    // 若党は4ステータスを持つ（能力合計230〜280の特例）
+    const generateJuuboku = () => {
+        return Array.from({ length: INITIAL_JUUBOKU_COUNT }, () => {
+            const total = randomInt(INITIAL_JUUBOKU_TOTAL_RANGE[0], INITIAL_JUUBOKU_TOTAL_RANGE[1])
+            const stats = distributeJuubokuStats(total, 100)
+            return {
+                combat: stats.combat,
+                command: stats.command,
+                intelligence: stats.intelligence,
+                administration: stats.administration,
+            }
+        })
+    }
+    const [juuboku, setJuuboku] = useState(generateJuuboku())
 
     const total =
         potential.combat +
@@ -66,16 +76,12 @@ export const CharacterCreateScreen: React.FC = () => {
     }
 
     const handleRerollJuuboku = () => {
-        setJuuboku([
-            randomInt(JUUBOKU_COMBAT_RANGE[0], JUUBOKU_COMBAT_RANGE[1]),
-            randomInt(JUUBOKU_COMBAT_RANGE[0], JUUBOKU_COMBAT_RANGE[1]),
-            randomInt(JUUBOKU_COMBAT_RANGE[0], JUUBOKU_COMBAT_RANGE[1]),
-        ])
+        setJuuboku(generateJuuboku())
     }
 
     const handleStart = () => {
         initializeGame(name, potential)
-        setCurrentScreen('main')
+        setCurrentScreen('kochou-evaluation')
     }
 
     const adjustStat = (key: keyof Stats, delta: number) => {
@@ -185,19 +191,27 @@ export const CharacterCreateScreen: React.FC = () => {
                 {/* 若党情報 */}
                 <div className="bg-sengoku-dark border border-sengoku-border p-6 mb-6">
                     <h2 className="text-sengoku-gold text-base mb-2 pb-2 border-b border-sengoku-border">
-                        若党（3名）
+                        若党（{INITIAL_JUUBOKU_COUNT}名）
                     </h2>
                     <p className="text-xs text-gray-500 mb-3">
-                        ※武芸は40〜60のランダム
+                        ※能力合計230〜280（特例で高水準）
                     </p>
                     <div className="flex gap-4 mb-3">
-                        {juuboku.map((combat, i) => (
+                        {juuboku.map((j, i) => (
                             <div
                                 key={i}
-                                className="flex-1 p-4 bg-sengoku-darker border border-sengoku-border text-center"
+                                className="flex-1 p-4 bg-sengoku-darker border border-sengoku-border"
                             >
-                                <div className="text-xs text-gray-500 mb-1">若党{i + 1} 武芸</div>
-                                <div className="text-lg font-mono">{combat}</div>
+                                <div className="text-xs text-gray-500 mb-2 text-center">若党{i + 1}</div>
+                                <div className="grid grid-cols-2 gap-1 text-xs">
+                                    <div>武芸: <span className="font-mono">{j.combat}</span></div>
+                                    <div>統率: <span className="font-mono">{j.command}</span></div>
+                                    <div>知略: <span className="font-mono">{j.intelligence}</span></div>
+                                    <div>政務: <span className="font-mono">{j.administration}</span></div>
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1 text-center">
+                                    合計: {j.combat + j.command + j.intelligence + j.administration}
+                                </div>
                             </div>
                         ))}
                     </div>

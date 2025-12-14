@@ -64,10 +64,10 @@ export function processWeeklyInjuryRecovery(player: PlayerState): PlayerState {
 /**
  * 戦闘損失を若党に適用
  */
-export function applyBattleCasualties(
-    retainers: Array<{ id: number; combat: number; injuryStatus: any; injuryWeeksRemaining: number }>,
+export function applyBattleCasualties<T extends { id: number; injuryStatus: any; injuryWeeksRemaining: number }>(
+    retainers: T[],
     casualties: { deaths: number; severeInjuries: number; lightInjuries: number }
-): Array<{ id: number; combat: number; injuryStatus: any; injuryWeeksRemaining: number }> {
+): T[] {
     const updated = [...retainers]
     let processed = 0
 

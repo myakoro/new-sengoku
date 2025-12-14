@@ -26,6 +26,9 @@ export interface Experience {
 export interface Juuboku {
     id: number
     combat: number
+    command: number
+    intelligence: number
+    administration: number
     injuryStatus: InjuryStatus
     injuryWeeksRemaining: number
 }
@@ -54,6 +57,8 @@ export interface PlayerState {
     rice: number
     money: number
     debt: number
+    monthlyRepayment: number
+    interestRate: number
     juuboku: Juuboku[]
     ashigaru: Ashigaru[]
     bashoShu: BashoShu[]
@@ -96,7 +101,47 @@ export interface BanditState {
     }
 }
 
+export interface BanditCardState {
+    id: string
+    bandit: BanditState
+    foundCalendarWeek: number
+    escalated: boolean
+    strategies?: StrategyType[]
+    delegatedTurn?: number | null
+    additionalAshigaru?: number
+    delegatedJuubokuId?: number | null
+}
+
 export type StrategyType = 'scout' | 'misinformation' | 'bribe' | 'hire'
+
+export type BattleStance = 'attack' | 'normal' | 'defense'
+
+export interface BanditBattleUnitState {
+    id: string
+    name: string
+    side: 'player' | 'enemy'
+    combat: number
+    hp: number
+    maxHp: number
+    morale: number
+    fatigue: number
+    stance: BattleStance
+    position: 'front' | 'reserve'
+}
+
+export interface BanditBattleState {
+    turn: number
+    maxTurns: number
+    playerMorale: number
+    enemyMorale: number
+    playerUnits: BanditBattleUnitState[]
+    enemyUnits: BanditBattleUnitState[]
+    swapsRemaining: number
+    log: string[]
+    attackType: 'normal' | 'night_raid'
+    resolved: boolean
+    outcome?: 'win' | 'lose' | 'draw'
+}
 
 export interface ActionLogEntry {
     week: number | "開始"
@@ -113,7 +158,22 @@ export interface MissionState {
     currentWeek: number
     additionalAshigaru: number
     strategies: StrategyType[]
+    delegatedTurn?: number | null
     actionLogs?: ActionLogEntry[]
+    source?: 'mandate' | 'patrol_card' | 'command'
+    sourceCardId?: string | null
+    lootMultiplier?: number
+    battleState?: BanditBattleState | null
+}
+
+export interface MandateState {
+    target: CommandType
+    issuedTurn: number
+    dueTurn: number
+    successMerit: number
+    status: 'active' | 'succeeded' | 'failed'
+    fixedStartTurn?: number
+    fixedDuration?: number
 }
 
 export interface GameTime {
@@ -125,9 +185,11 @@ export interface GameTime {
 
 export type CommandType =
     | '訓練'
+    | '全体訓練'
     | '巡察'
     | '情報収集'
     | '護衛任務'
+    | '賊軍偵察'
     | '盗賊討伐（小規模）'
     | '盗賊討伐（中規模）'
     | '盗賊討伐（大規模）'
@@ -144,6 +206,7 @@ export interface Command {
         combat?: number
         intelligence?: number
     }
+    hidden?: boolean
 }
 
 export interface LogEntry {

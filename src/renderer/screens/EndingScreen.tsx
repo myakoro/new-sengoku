@@ -11,12 +11,14 @@ export const EndingScreen: React.FC = () => {
         <div className="min-h-screen bg-gradient-to-b from-sengoku-gold to-sengoku-darker flex items-center justify-center p-10">
             <div className="max-w-2xl w-full bg-sengoku-dark border-2 border-sengoku-gold p-8 text-center">
                 <div className="mb-8">
-                    <div className="text-5xl mb-4">🎊</div>
+                    <div className="text-5xl mb-4">{player.rank === '小頭' ? '🎊' : '⏰'}</div>
                     <h1 className="text-4xl font-bold text-sengoku-gold mb-4">
                         エンディング
                     </h1>
                     <p className="text-xl text-sengoku-gray">
-                        小頭到達おめでとうございます！
+                        {player.rank === '小頭' 
+                            ? '小頭到達おめでとうございます！' 
+                            : '3年の期間が終了しました'}
                     </p>
                 </div>
 
@@ -32,8 +34,8 @@ export const EndingScreen: React.FC = () => {
                             <span>{player.merit}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-sengoku-gray">プレイ週数</span>
-                            <span>{player.week}週</span>
+                            <span className="text-sengoku-gray">プレイターン数</span>
+                            <span>{player.week}ターン</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-sengoku-gray">最終武芸</span>

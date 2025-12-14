@@ -105,14 +105,16 @@ const INITIAL_PLAYER_STATE = {
   
   // 経済
   rice: 0.5,           // 初期米：0.5石（半月分の余剰）
-  money: 10.0,         // 初期金：10貫
+  money: 0.5,         // 初期金：0.5貫
   debt: 0,
   
-  // 若党３名（Version 0.1では武芸40〜60のランダム）
+  // 若党2名（別紙E準拠：初期若党は能力合計230〜280で生成）
+  // Version 0.1では武芸のみ使用するため、武芸単体ではなく合計値を基準に生成
+  // 武芸は合計の約20-30%程度を想定（約50〜80）
   juuboku: [
-    { id: 1, combat: 40 + Math.floor(Math.random() * 21) },  // 40〜60
-    { id: 2, combat: 40 + Math.floor(Math.random() * 21) },  // 40〜60
-    { id: 3, combat: 40 + Math.floor(Math.random() * 21) }   // 40〜60
+    { id: 1, combat: 50 + Math.floor(Math.random() * 31) },  // 50〜80
+    { id: 2, combat: 50 + Math.floor(Math.random() * 31) },  // 50〜80
+    { id: 3, combat: 50 + Math.floor(Math.random() * 31) }   // 50〜80
   ],
   
   ashigaru: [],
@@ -124,6 +126,9 @@ const INITIAL_PLAYER_STATE = {
   rankDEventAccepted: false
 }
 ```
+
+※v0.1では、盗賊討伐ミッション進行中に月次（評定）画面へ強制割り込みはしない。
+月次境界に到達した場合は、ミッション終了（結果を閉じる）または中止で画面を離れるタイミングで月次へ遷移する。
 
 ---
 
@@ -141,7 +146,7 @@ const INITIAL_PLAYER_STATE = {
 **初期戦力：**
 ```
 主人公：52
-若党3名（平均20）：12
+若党2名（平均20）：12
 合計：64
 ```
 
@@ -164,10 +169,17 @@ const INITIAL_PLAYER_STATE = {
   ├─ 月次処理（4週ごと）
   └─ 次週へ
   ↓
-小頭到達
+小頭到達 または 312ターン経過（3年）
   ↓
 エンディング
 ```
+
+#### ゲーム終了条件
+
+1. **小頭到達**: 功績条件を満たして小頭に昇進した場合
+2. **期間終了**: 312ターン（3年 = 156週 × 2ターン）経過した場合
+
+どちらの条件でもエンディング画面へ遷移する。エンディング画面では終了理由に応じたメッセージを表示する。
 
 ---
 
@@ -415,6 +427,50 @@ function showEvaluation(player, rival) {
 }
 ```
 
+#### 下知（次の小頭評定までの期限付き目標）
+
+- 徒士・馬上衆の間は、小頭から「次の小頭評定で〇〇の達成状況を判定する」という下知が与えられる。
+- 小頭評定は「1か月=8ターン」のうち **1ターン目・5ターン目**（=4ターン周期）で発生する。
+- 下知は次の小頭評定まで有効。
+- 達成できなかった場合（未実行・失敗を問わない）は、小頭評定時点で **成功時功績の40%** を功績から減算する。
+  - 例: 成功時功績が15なら、未達時は功績-6
+  - 功績が0未満にならないよう下限を0とする。
+
+##### 開始ターン固定の下知（例外）
+
+稀に「開始ターン固定」の下知が発行される。
+
+```javascript
+const mandate = {
+  target: "全体訓練",       // 目標主命
+  issuedTurn: 5,            // 発行ターン
+  dueTurn: 9,               // 期限ターン（次の小頭評定）
+  successMerit: 0,          // 成功時功績（固定開始型は0が多い）
+  status: "active",         // "active" | "succeeded" | "failed"
+  fixedStartTurn: 5,        // 開始ターン固定（このターンで強制開始）
+  fixedDuration: 1          // 拘束ターン数
+}
+```
+
+- `fixedStartTurn` を持つ下知は、**そのターンに入った瞬間に強制的に開始**される。
+- プレイヤーは主命選択画面へ進まず、直接結果画面へ遷移する。
+- Version 0.1 の例：
+  - `全体訓練`（5%の確率で発行、強制開始、1ターン拘束）
+  - `賊軍偵察`（馬上衆のみ、5%の確率で発行、強制開始、1ターン拘束）
+
+##### 盗賊討伐中の下知発行
+
+盗賊討伐ミッション進行中に小頭評定ターンを迎えた場合：
+
+1. **下知は失敗扱い**となる（討伐未完了のため）
+2. 失敗ペナルティ（成功時功績の40%減算）が適用される
+3. **討伐対象の盗賊は1ランク規模拡大**して次の評定で再登場する
+   - 例：Dランク未討伐 → Cランクとして再出現
+   - Sランク未討伐 → Sランクのまま再出現（上限）
+4. 新しい下知が発行される（通常通り）
+
+この仕様により、盗賊討伐を放置すると脅威が増大するリスクを表現する。
+
 ---
 
 ### 2-5. 出世判定
@@ -450,15 +506,15 @@ function checkPromotion(player) {
 
 徒士は、原則として **直属の馬上衆または小頭が率いる隊の一員** として任務に参加する。任務中に徒士が単独で行動し、単騎で戦闘を行うことはない。
 
-1か月は4週、1週は「前半」「後半」の **2ターン** に分割される。1任務のスパンは **最大2週間（=8ターン）** とし、そのうち実際に任務で拘束されるのは **3〜5ターン程度** を基本とする。任務の発生判定は毎月 **第1週前半・第3週前半** の2回のみ行う。
+1か月は4週、1週は「前半」「後半」の **2ターン** に分割される。1任務のスパンは **最大2週間（=4ターン）** とし、そのうち実際に任務で拘束されるのは **2〜4ターン程度** を基本とする。任務の発生判定は毎月 **第1週前半・第3週前半** の2回のみ行う。
 
 徒士の行動は、大きく以下の二層で構成される。
 
 - **メイン任務枠（強制）**  
   直属の上司（馬上衆／小頭）が受けた任務に応じて、自動的に埋まる。徒士本人は内容を選択できない。
   - 小隊訓練（模擬戦）
-  - 小規模盗賊掃討
-  - 大規模盗賊討伐（2週間作戦の一部隊として参加）
+  - 盗賊討伐（小規模）
+  - 盗賊討伐（討伐戦）（2週間作戦の一部隊として参加）
   - 門番任務（3ターン拘束／3か月に1回程度）
   - 土木工事（3〜4ターン拘束）
   - 荷駄護衛・巡回 など
@@ -504,13 +560,108 @@ function checkPromotion(player) {
 
 ---
 
+### 2-7-2. 若党雇用システム
+
+若党は主命選択画面から「若党雇用」を選択することで雇用できる。
+
+#### 雇用上限
+
+- **最大2名**まで雇用可能（初期から上限2名）
+- 若党が死亡・離脱した場合、空き枠ができれば再雇用可能
+
+#### 若党の能力
+
+若党は4つのステータスを持つ（武芸・統率・知略・政務）。
+
+```javascript
+// 若党データ構造
+const juuboku = {
+  id: 1,
+  combat: 50,         // 武芸
+  command: 40,        // 統率
+  intelligence: 35,   // 知略
+  administration: 30, // 政務
+  injuryStatus: 'normal',
+  injuryWeeksRemaining: 0
+}
+
+// 初期若党（特例）：能力合計230〜280
+// 一般若党（雇用）：能力合計200〜270（世界の能力分布に従う）
+```
+
+#### 若党雇用画面
+
+```javascript
+// 若党雇用画面の状態
+const recruitmentState = {
+  candidates: [],           // 現在の候補リスト（2〜5名）
+  refreshCost: 0.2,         // 募集費用：0.2貫
+  refreshedThisMonth: false, // 今月リスト更新済みか
+  hireCost: 0,              // 雇用費用：無料（扶持米のみ）
+}
+
+// 候補数の決定（役職が上がると候補が増える）
+function getCandidateCount(rank) {
+  switch (rank) {
+    case "徒士":     return randomInt(2, 3)  // 2〜3名
+    case "馬上衆":   return randomInt(3, 4)  // 3〜4名
+    case "小頭":     return randomInt(4, 5)  // 4〜5名
+    default:         return randomInt(2, 5)
+  }
+}
+
+// 候補リスト生成（世界の能力分布に従う）
+function generateCandidates(rank) {
+  const count = getCandidateCount(rank)
+  return Array.from({ length: count }, () => {
+    const totalAbility = generateByWorldDistribution()  // 200〜270程度
+    return {
+      id: generateId(),
+      combat: Math.floor(totalAbility * randomRatio(0.2, 0.3)),
+      command: Math.floor(totalAbility * randomRatio(0.2, 0.3)),
+      intelligence: Math.floor(totalAbility * randomRatio(0.2, 0.3)),
+      administration: Math.floor(totalAbility * randomRatio(0.2, 0.3)),
+    }
+  })
+}
+```
+
+#### 画面フロー
+
+1. **若党雇用画面を開く**
+   - 現在の若党一覧を表示（4ステータス表示）
+   - 雇用可能な候補リスト（2〜5名）を表示
+   - 各候補の4ステータスを表示
+
+2. **候補を選んで雇用**
+   - 雇用費用：無料（ただし毎月の扶持米0.3石が発生）
+   - 雇用上限（2名）に達している場合は雇用不可
+
+3. **リストを更新（募集）**
+   - 費用：0.2貫
+   - **月に1回のみ**更新可能
+   - 新しい候補（2〜5名）が生成される
+   - 「より良い若党を探す」ためのコスト
+
+4. **画面を閉じる**
+   - 主命選択画面に戻る
+
+#### 注意事項
+
+- 若党の扶持米は月0.3石（GDD準拠）
+- 若党が負傷・死亡した場合の補充として使用
+- 候補リストは月次処理時に自動更新される（無料）
+- 月途中での追加更新は0.2貫かかり、月1回のみ
+
+---
+
 ### 2-8. 小隊任務の種類と基本フロー
 
 本作の Version 0.1 では、徒士〜馬上衆期の「小隊任務」として、以下の3種類を扱う。
 
 - 小隊訓練（模擬戦）
-- 小規模盗賊掃討
-- 大規模盗賊討伐（2週間作戦）
+- 盗賊討伐（小規模）
+- 盗賊討伐（討伐戦）
 
 これらはすべて **週単位の任務スロット** の中で発生し、必要に応じて小隊戦闘システム（7A〜7C）を用いる。
 
@@ -532,7 +683,7 @@ function checkPromotion(player) {
   - 基本的には「小さな功績」と「ステータス経験値（武芸・統率）」が中心。
   - 顕著な戦果（模擬戦での圧勝など）があった場合、小さな褒美や追加功績を与えてよいが、盗賊討伐ほど大きくはしない。
 
-#### 2-8-2. 小規模盗賊掃討
+#### 2-8-2. 盗賊討伐（小規模）
 
 - **目的**: 村周辺や街道に出没する少人数の盗賊集団を討伐し、治安を維持する。
 - **期間**: 1〜2週間（3〜4ターン拘束を想定）
@@ -551,10 +702,10 @@ function checkPromotion(player) {
   - 任務としての基礎功績（小〜中程度）に加え、戦闘での撃破数・勝利に応じた戦闘功績が加算される。
   - 盗賊の所持財産に応じた戦利品（米・金）が得られるほか、盗賊討伐任務であるため、少額の危険手当を上乗せしてよい。
 
-#### 2-8-3. 大規模盗賊討伐（2週間作戦）
+#### 2-8-3. 盗賊討伐（討伐戦）
 
 - **目的**: 広範囲に被害を出している盗賊勢力（拠点持ち）を、複数部隊による2週間規模の作戦で討伐する。
-- **期間**: 固定で2週間（4〜5ターン拘束を想定）
+- **期間**: 固定で2週間（3〜4ターン拘束を想定）
   - 典型例:
     - 第1週前半: 任務発生・作戦下命（足軽大将／小頭からの命令）
     - 第1週後半: 偵察・準備行動（必要に応じて小規模交戦）
@@ -693,22 +844,22 @@ const AI_BEHAVIORS = {
     巡察: 0.2,
     情報収集: 0.2,
     護衛任務: 0.1,
-    "小規模盗賊掃討": 0.1
+    "盗賊討伐（小規模）": 0.1
   },
   
   balanced: {
     訓練: 0.2,
     情報収集: 0.2,
     護衛任務: 0.2,
-    "小規模盗賊掃討": 0.2,
-    "大規模盗賊討伐（2週間作戦)": 0.2
+    "盗賊討伐（小規模）": 0.2,
+    "盗賊討伐（討伐戦)": 0.2
   },
   
   aggressive: {
     訓練: 0.1,
-    "小規模盗賊掃討": 0.3,
-    "大規模盗賊討伐（2週間作戦)": 0.3,
-    "賊軍討伐（2週間作戦)": 0.3
+    "盗賊討伐（小規模）": 0.3,
+    "盗賊討伐（討伐戦)": 0.3,
+    "盗賊討伐（賊軍)": 0.3
   }
 }
 ```
@@ -722,9 +873,9 @@ function rivalSelectCommand(rival) {
   // 役職による制限
   let availableCommands = pattern
   if (rival.rank === "徒士") {
-    // 徒士期のAIは大規模・賊軍討伐の主命は選ばない
-    delete availableCommands["大規模盗賊討伐（2週間作戦)"]
-    delete availableCommands["賊軍討伐（2週間作戦)"]
+    // 徒士期のAIは討伐戦・賊軍討伐の主命は選ばない
+    delete availableCommands["盗賊討伐（討伐戦)"]
+    delete availableCommands["盗賊討伐（賊軍)"]
   }
   
   // 確率で選択
@@ -799,9 +950,16 @@ const mission = {
   
   // プレイヤーの準備
   additionalAshigaru: 0,       // 追加雇用した足軽
-  strategies: []               // 実行済みの計略
+  strategies: [],              // 実行済みの計略
+
+  // 若党委任（並行処理）
+  delegatedTurn: null          // 当該ターンに若党へ準備行動を委任したか（ターン番号 or null）
 }
 ```
+
+- 若党委任の担当若党は、デフォルトで「適任者（例：知略が高い若党）」を自動選択する。
+- プレイヤーはUI上で担当若党を手動で切り替え可能。
+- 委任結果は行動ログに「担当若党」「成功率」「効果量（例：士気低下値）」が分かる形で出力する。
 
 ---
 
@@ -822,8 +980,24 @@ const INITIAL_PLAYER = {
 }
 
 // 若党（旧：従僕）初期生成
-const INITIAL_JUUBOKU_COUNT = 3
-const JUUBOKU_COMBAT_RANGE = [15, 25]  // 武芸15〜25
+// 別紙E準拠：初期若党は能力合計230〜280で生成（特例で高水準）
+// 4ステータス（武芸・統率・知略・政務）を持つ
+const INITIAL_JUUBOKU_COUNT = 2        // 初期若党数：2名
+const MAX_JUUBOKU_COUNT = 2            // 若党の雇用上限：2名
+const INITIAL_JUUBOKU_TOTAL_RANGE = [230, 280]  // 初期若党の能力合計範囲
+
+// 若党雇用システム
+const JUUBOKU_RECRUITMENT = {
+  maxCount: 2,              // 雇用上限：2名
+  refreshCost: 0.2,         // 募集費用（リスト更新）：0.2貫
+  refreshPerMonth: 1,       // 月に1回のみ更新可能
+  candidateCount: {         // 候補数（役職で変動）
+    徒士: [2, 3],           // 2〜3名
+    馬上衆: [3, 4],         // 3〜4名
+    小頭: [4, 5],           // 4〜5名
+  },
+  generalTotalRange: [200, 270],  // 一般若党の能力合計範囲
+}
 
 // キャラメイク
 const CHAR_CREATE = {
@@ -831,6 +1005,25 @@ const CHAR_CREATE = {
   minPotential: 10,         // 各能力の最低上限
   maxPotential: 100,        // 各能力の最高上限
   initialRatio: 0.8         // 初期値は上限の80%
+}
+
+// 世界の能力分布（人口全体の能力合計値の分布）
+// 別紙E準拠：他家の若党や一般武士はこの分布に基づいて生成
+const WORLD_ABILITY_DISTRIBUTION = {
+  // 能力合計値の閾値と累積確率
+  tiers: [
+    { min: 300, probability: 0.02 },  // 300以上：2%（英傑級）
+    { min: 280, probability: 0.05 },  // 280以上：5%（優秀）
+    { min: 260, probability: 0.10 },  // 260以上：10%（有能）
+    { min: 240, probability: 0.15 },  // 240以上：15%（平均以上）
+    { min: 200, probability: 0.30 },  // 200以上：30%（平均）
+    { min: 180, probability: 0.23 },  // 180以上：23%（平均以下）
+    { min: 160, probability: 0.10 },  // 160以上：10%（凡庸）
+    { min: 0,   probability: 0.05 }   // 160未満：5%（無能）
+  ],
+  
+  // 参考：プレイヤー初期若党は230〜280（特例で高水準）
+  // 参考：一般若党は200〜270
 }
 ```
 
@@ -936,7 +1129,7 @@ const COMBAT_SUCCESS_RATE = {
 // 夜襲
 const NIGHT_RAID = {
   successPenalty: -10,    // 基礎成功率-10%
-  moraleDecrease: -15     // 敵士気-15（夜襲が成功した場合）
+  moraleDecrease: -20     // 敵士気-20
 }
 ```
 
@@ -1105,6 +1298,16 @@ interface Retainer {
 - 重傷: 2-4名
 - 軽傷: 1-3名
 
+#### 5-4-3A. 雇い足軽（足軽雇用）の扱い（Version 0.1）
+
+- 盗賊討伐ミッションで「足軽雇用」により増えた足軽（`additionalAshigaru`）は、家臣リストに恒久追加されない。
+- 死者数が発生した場合、死亡は **雇い足軽 → 若党（従僕）** の順に割り当てる（雇い足軽が残っている限り、若党の死亡を優先しない）。
+- 雇い足軽の死亡は、功績ペナルティを発生させる。
+  - 判定は戦闘の勝敗ではなく「下知（mandate）を達成したか」で分岐する。
+  - 下知達成：死亡1名につき `功績-2`
+  - 下知未達：死亡1名につき `功績-4`
+- 若党/徒士/馬上衆の死亡では功績を減らさない（戦力低下のみ）。
+
 #### 5-4-4. 回復処理
 
 毎週の処理で、負傷者の`injuryWeeksRemaining`を1減らす。0になったら`injuryStatus`を`'normal'`に戻す。
@@ -1215,24 +1418,6 @@ function generateReplacementRetainer() {
 | 給与 | なし | 毎月支払い必要 |
 
 ---
-
-### 5-4. 上司の支援（賊軍討伐のみ）
-
-```javascript
-// 賊軍討伐時、足軽10名の支援
-const BOSS_SUPPORT = {
-  ashigaru: 10,
-  averageCombat: 35,
-  totalPower: 350
-}
-
-function calculateRankDCombatPower(player) {
-  const playerPower = calculatePlayerCombatPower(player)
-  const supportPower = BOSS_SUPPORT.totalPower
-  
-  return playerPower + supportPower
-}
-```
 
 ---
 
@@ -1347,9 +1532,8 @@ function getMoraleMultiplier(morale) {
 morale -= 10  // 通常
 morale -= 18  // 弱点「統率不足」時
 
-// 夜襲（成功時）
-// ※夜襲の成功可否は「夜襲の成功率」の式で判定し、戦闘そのものの勝敗判定とは別に扱う
-morale -= 15
+// 夜襲
+morale -= 20
 ```
 
 ---
@@ -1632,7 +1816,67 @@ function calculateTotalDamage(P_self, P_enemy, result) {
 
 ---
 
-#### 7A-4-2. 実装例
+#### 7A-4-2. 馬による補正
+
+馬を所持しているキャラクターは、以下の補正を受ける。
+
+**戦闘時の補正：**
+
+| 方針 | 戦闘力補正 | 疲労増加補正 | 備考 |
+|------|------------|--------------|------|
+| **攻撃** | ×1.5（通常×1.2） | ±0 | 騎馬突撃で火力大幅UP |
+| **平常** | ×1.0 | −1 | 馬上からの安定した戦闘 |
+| **防御** | ×1.0 | −1 | 機動力で疲労を抑える |
+
+**その他の補正：**
+
+| 状況 | 補正 | 備考 |
+|------|------|------|
+| **追撃時** | 手柄確率 ×1.5 | 逃げる敵を追いやすい |
+| **撤退時** | 被害軽減 ×0.6 | 歩兵より明らかに逃げやすい |
+
+**設計意図：**
+- 馬上衆でも馬に乗る義務はない（維持費0.6石/月がかかる）
+- 馬を持つメリット：
+  - **攻撃時**：戦闘力×1.5（騎馬突撃）
+  - **平常・防御時**：疲労−1（機動力）
+  - **追撃時**：手柄確率×1.5
+  - **撤退時**：被害軽減×0.6
+
+```javascript
+// 馬による戦闘補正
+function applyHorseModifier(character, stance) {
+  if (!character.hasHorse) {
+    return { combatBonus: 1.0, fatigueReduction: 0 }
+  }
+  
+  switch (stance) {
+    case '攻撃':
+      return { combatBonus: 1.25, fatigueReduction: 0 }  // 1.2→1.5 (×1.25)
+    case '平常':
+    case '防御':
+      return { combatBonus: 1.0, fatigueReduction: 1 }
+    default:
+      return { combatBonus: 1.0, fatigueReduction: 0 }
+  }
+}
+
+// 馬による追撃時の手柄確率補正
+function getPursuitMeritChance(character) {
+  const baseChance = 0.3  // 基本30%
+  const horseBonus = character.hasHorse ? 1.5 : 1.0
+  return baseChance * horseBonus
+}
+
+// 馬による撤退時の被害軽減
+function getRetreatDamageMultiplier(character) {
+  return character.hasHorse ? 0.6 : 1.0
+}
+```
+
+---
+
+#### 7A-4-3. 実装例（方針）
 
 ```javascript
 function applyStanceModifier(character, stance) {
@@ -1747,14 +1991,21 @@ function swapFrontlineMembers(frontline, reserve, swapList) {
 
 #### 7A-7-2. UI/UX
 
-- 前線6人の「HP・士気・疲労」を一目で把握できる表示が必須。
+- 前線（最大5人）の「HP・士気・疲労」を一目で把握できる表示が必須。
+- 決戦画面では「敵（最大5） vs 自軍（最大5）」が向き合う配置で表示する。
+- 敵側も、前線/控えの「HP・士気・疲労」を参照できる表示を用意する（閲覧のみ）。
 - 方針変更と入れ替えは、直感的な操作で行えるようにする。
+- 控えがいない場合でも、前線ユニットを「退避（前線→控え）」できる操作を用意する（交代回数を消費）。
 
 #### 7A-7-3. Version 0.1での扱い
 
-Version 0.1では、この詳細戦闘システムは**実装しない**。  
-簡易的な「戦闘力比較 → 成功率判定」のみで処理する。  
-本システムはVersion 0.5以降で実装予定。
+Version 0.1では、盗賊討伐に限り、本システムの要素（前線/後列、個人HP・士気・疲労、方針、交代）を用いたターン制戦闘を実装する。  
+ただし、戦力差が大きい場合はゲームテンポを優先し「自動戦闘（即時決着）」による簡易解決を選択できる（強制ではない）。
+
+- 盗賊討伐の決戦フェーズでは、前線（最大5人）・後列（控え）を編成し、前線ユニットごとに方針（攻撃/平常/防御）を設定できる。
+- 交代はターン開始時に最大2人まで。
+- 各ターンは 7A-6 の流れに従って進行し、HP/士気/疲労を更新する。
+- 自動戦闘は、戦力比が極端な場合に選択肢として提示される（閾値は実装で調整可能）。
 
 ---
 
@@ -1781,8 +2032,7 @@ successRate = 40
   - 準備なし／失敗: `0` 
   - 政務による夜襲準備が成功している場合: `+15`
 
-夜襲が**成功**した場合、敵の士気を**−15**する。  
-夜襲の成功・失敗は上記の成功率で判定し、戦闘そのものの勝敗判定（戦力比較による成否）とは別に扱う。
+※Version 0.1 では、この夜襲成功率（7A-8）は採用せず、簡易モデルとして「通常の戦闘成功率に `-10` の補正」および「敵士気 `-20`」を適用する。
 
 ---
 
@@ -2154,29 +2404,13 @@ function calculatePlayerCombatPower(player) {
 合計：212
 ```
 
-#### 上司支援の計算
-
-賊軍討伐（ランクD）では上司から足軽10名の支援：
-
-```javascript
-const bossSupportPower = 35 * 10 = 350
-```
-
-**賊軍討伐時の合計戦力：**
-```
-小頭：166
-上司支援：350
-合計：516
-```
-
 ---
-
 ### 6-1. ランク分類
 
 ```javascript
 const BANDIT_RANKS = {
-  S: {
-    name: "犯罪者",
+  D: {
+    name: "小規模盗賊（旧S相当)",
     count: [1, 2],
     combatRange: [15, 50],
     morale: [30, 40],
@@ -2184,11 +2418,11 @@ const BANDIT_RANKS = {
     moneyRatio: 0.3,
     bossReward: { rice: 0.05, money: 0.025 },
     merit: 15,
-    timeLimit: 2
+    timeLimit: 4,        // 4ターン（次の評定まで）
+    description: "犯罪者1〜2名。次の評定までに処理すべき軽微な事件。"
   },
-  
-  A: {
-    name: "小規模盗賊団",
+  C: {
+    name: "小規模盗賊団（旧A相当)",
     count: [3, 5],
     combatRange: [70, 110],
     morale: [35, 45],
@@ -2196,11 +2430,11 @@ const BANDIT_RANKS = {
     moneyRatio: 0.4,
     bossReward: { rice: 0.075, money: 0.05 },
     merit: 30,
-    timeLimit: 4   // 行動ターン数（4ターン=2週間）
+    timeLimit: 4,        // 4ターン（次の評定まで）
+    description: "小規模盗賊団3〜5名。次の評定までに討伐する。"
   },
-  
   B: {
-    name: "中規模盗賊団",
+    name: "中規模盗賊団（旧B相当)",
     count: [6, 10],
     combatRange: [150, 250],
     morale: [40, 50],
@@ -2208,11 +2442,11 @@ const BANDIT_RANKS = {
     moneyRatio: 0.5,
     bossReward: { rice: 0.125, money: 0.075 },
     merit: 40,
-    timeLimit: 4
+    timeLimit: 4,        // 4ターン（2週間作戦）
+    description: "中規模盗賊団6〜10名。2週間規模の討伐作戦。"
   },
-  
-  C: {
-    name: "大規模盗賊団",
+  A: {
+    name: "大規模盗賊団（旧C相当)",
     count: [11, 15],
     combatRange: [300, 450],
     morale: [45, 55],
@@ -2220,20 +2454,21 @@ const BANDIT_RANKS = {
     moneyRatio: 0.6,
     bossReward: { rice: 0.25, money: 0.125 },
     merit: 60,
-    timeLimit: 4
+    timeLimit: 4,        // 4ターン（2週間作戦）
+    description: "大規模盗賊団11〜15名。2週間規模の討伐戦。"
   },
   
-  D: {
-    name: "賊軍",
+  S: {
+    name: "賊軍（旧D相当）",
     count: [20, 25],
     baseCombat: 800,
     morale: [40, 50],
     ricePerBandit: [0.12, 0.18],
     moneyRatio: 0.7,
     bossReward: { rice: 0.75, money: 0.5 },
-    bossSupport: { ashigaru: 10, combatPower: 350 },
     merit: 80,
-    timeLimit: 4
+    timeLimit: 8,        // 8ターン（1か月=4週の大隊任務）
+    description: "賊軍20〜25名規模。1か月スパンの大規模討伐作戦（大隊任務・イベント）。"
   }
 }
 ```
@@ -2252,7 +2487,7 @@ function generateBandit(rank) {
   
   // 戦闘力
   let baseCombatPower
-  if (rank === "D") {
+  if (rank === "S") {
     baseCombatPower = config.baseCombat
   } else {
     baseCombatPower = config.combatRange[0] + 
@@ -2348,6 +2583,15 @@ function calculateBanditReward(rank, banditCount) {
 }
 ```
 
+※巡察で得た盗賊情報（カード）由来で討伐した場合は、戦利品（loot）に倍率を適用してよい。
+
+```javascript
+// 例：巡察カード由来は戦利品2倍
+const lootMultiplier = source === "patrol_card" ? 2 : 1
+loot.rice *= lootMultiplier
+loot.money *= lootMultiplier
+```
+
 ---
 
 ### 6-5. 盗賊討伐ミッションの詳細フロー
@@ -2357,7 +2601,7 @@ function calculateBanditReward(rank, banditCount) {
 ```typescript
 interface BanditMissionDisplay {
   // ヘッダー情報
-  missionName: string       // "大規模盗賊討伐（2週間作戦）"
+  missionName: string       // "盗賊討伐（大規模）" など
   enemyCount: string        // "3〜5名"
   rewardMerit: number       // 30
   
@@ -2385,25 +2629,27 @@ interface ActionLogEntry {
 ```
 [第2ターン] 偵察     [成功] 敵の詳細情報を入手。人数4名、戦闘力85と判明。
 [第1ターン] 足軽雇用 [成功] 足軽5名を雇用。戦力+160。
-[開始]      任務開始 [―]   大規模盗賊討伐（2週間作戦）を開始。期限: 4ターン目（2週間）まで。
+[開始]      任務開始 [―]   盗賊討伐（大規模）を開始。期限: 4ターン後まで。
 ```
 
 #### 週ごとの行動選択肢
 
 ```
-第1〜3ターン（準備フェーズ）：
+最終ターン以外（準備フェーズ）：
 ├─ 偵察
 ├─ 偽情報
 ├─ 内応者買収
 ├─ 足軽を雇う
 └─ 様子を見る
 
-第4ターン（決戦フェーズ）：
+最終ターン（決戦フェーズ）：
 ├─ 通常攻撃
 ├─ 夜襲
 └─ 諦める
 
-※ランクD（賊軍）も4ターン構成だが、敵戦力と報酬が特に大きい
+※ランクS（賊軍）は8ターン構成（第1〜7ターンが準備フェーズ、第8ターンが決戦フェーズ）で、敵戦力と報酬が特に大きい
+※世界観上、徒士/馬上衆の盗賊調査・盗賊討伐（D〜A）は「小頭が上位から受けた治安関連タスク（治安回復/賊軍討伐など）」を分割して配下に下知したものとして扱う。
+※S（賊軍）は、そのうち上位から賊軍を名指しで討伐指示されるケースであり、タスクの位置づけとしては治安回復と同列。
 ```
 
 #### ミッション実行フロー
@@ -2423,7 +2669,7 @@ function executeBanditMissionTurn(mission, player, action) {
       return abandonMission(mission, player)
     }
   } else {
-    // 準備行動（第1〜3ターン）
+    // 準備行動（最終ターン以外）
     switch (action) {
       case "偵察":
         return executeStrategy("偵察", player, mission.bandit)
@@ -2445,11 +2691,6 @@ function executeBanditMissionTurn(mission, player, action) {
 ```javascript
 function executeBattle(mission, player, attackType) {
   const playerPower = calculatePlayerCombatPower(player)
-  
-  // ランクDなら上司支援を追加
-  if (mission.rank === "D") {
-    playerPower += 350  // 足軽10名
-  }
   
   // 夜襲の場合、敵の士気を下げる
   if (attackType === "夜襲") {
@@ -2481,11 +2722,6 @@ function executeBattle(mission, player, attackType) {
     
     // 経験値
     gainExp(player, "combat", 20)
-    
-    // ランクDなら即座に小頭昇進
-    if (mission.rank === "D") {
-      promoteToKogashira(player)
-    }
     
     return { 
       success: true, 
@@ -2695,6 +2931,12 @@ const STRATEGIES = {
     effect: "戦闘力-10%",
     cost: 0.3,
     expGain: { intelligence: 20 }
+  },
+
+  足軽雇用: {
+    name: "足軽雇用",
+    effect: "足軽5名を雇用（戦力+160）",
+    cost: 0.5
   }
 }
 ```
@@ -2734,6 +2976,15 @@ function calculateStrategySuccessRate(strategy, player, enemy) {
 
 ```javascript
 function executeStrategy(strategy, player, enemy) {
+  if (strategy === "足軽雇用") {
+    if (player.money >= 0.5) {
+      player.money -= 0.5
+      mission.additionalAshigaru += 5
+      return { success: true }
+    }
+    return { success: false }
+  }
+
   const successRate = calculateStrategySuccessRate(strategy, player, enemy)
   const success = Math.random() * 100 < successRate
   
@@ -2777,6 +3028,8 @@ function applyStrategyEffect(strategy, enemy) {
 }
 ```
 
+※内応者買収は、v0.1では「偵察済み」かつ「敵勢力10名以上」の場合のみ選択可能とする。
+
 ---
 
 ## 8. 主命システム
@@ -2802,21 +3055,22 @@ const COMMANDS = {
     merit: 3,
     reward: { rice: 0, money: 0 },
     encounterRate: 0.2,  // 20%で盗賊遭遇
-    encounterBonus: {
-      merit: 3,
-      reward: { rice: 0.11, money: 0.055 }
+    onEncounter: {
+      // 盗賊遭遇時はCランク討伐ミッションを自動開始
+      banditRank: "C",
+      timeLimit: 4
     }
   },
   
   情報収集: {
     name: "情報収集",
     duration: 1,
-    merit: 12,
-    reward: { rice: 0, money: 0.1 },
+    merit: 5,
+    reward: { rice: 0, money: 0 },
     expGain: { intelligence: 10 },
     successRate: "60% + 知略×0.7",
     onFail: {
-      merit: 6,
+      merit: 0,
       reward: { rice: 0, money: 0 }
     }
   },
@@ -2825,11 +3079,13 @@ const COMMANDS = {
     name: "護衛任務",
     duration: 1,
     merit: 8,
-    reward: { rice: 0.1, money: 0.05 },
+    reward: { rice: 0, money: 0 },
     attackRate: 0.1,  // 10%で襲撃
-    attackBonus: {
-      merit: 8,
-      reward: { rice: 0.1, money: 0.05 }
+    onAttackSuccess: {
+      merit: 5  // 撃退成功で+5
+    },
+    onAttackFail: {
+      merit: 0  // 撃退失敗で功績なし
     }
   },
   
@@ -2837,15 +3093,15 @@ const COMMANDS = {
   
   "盗賊討伐（小規模）": {
     name: "盗賊討伐（小規模）",
-    duration: 2,
-    banditRank: "S",
+    duration: 4,
+    banditRank: "D",
     merit: 15
   },
   
   "盗賊討伐（中規模）": {
     name: "盗賊討伐（中規模）",
     duration: 4,
-    banditRank: "A",
+    banditRank: "C",
     merit: 30
   },
   
@@ -2860,15 +3116,15 @@ const COMMANDS = {
   "盗賊討伐（討伐戦）": {
     name: "盗賊討伐（討伐戦）",
     duration: 4,
-    banditRank: "C",
+    banditRank: "A",
     merit: 60,
     requireRank: "馬上衆"
   },
   
   "盗賊討伐（賊軍）": {
     name: "盗賊討伐（賊軍）",
-    duration: 4,
-    banditRank: "D",
+    duration: 8,
+    banditRank: "S",
     merit: 80,
     special: "小頭昇進イベント"
   }
@@ -2975,21 +3231,24 @@ function handleBanditEncounter(player) {
       player.money += 0.055
       gainExp(player, "combat", 10)
       
-      return { 
+      return {
         success: true,
         bonus: true,
         message: "討伐成功！追加功績を得ました"
       }
     } else {
       // 失敗
-      return { 
+      return {
         success: false,
         message: "討伐失敗...負傷しました" 
       }
     }
   } else {
     // 見逃す
-    return { success: true }
+    return {
+      success: true,
+      message: "見逃した"
+    }
   }
 }
 
@@ -2998,17 +3257,18 @@ function handleAttack(command, player) {
   const config = COMMANDS[command]
   
   // 襲撃者生成
-  const banditCount = command === "護衛任務" ? 
-    3 + Math.floor(Math.random() * 3) :  // 3〜5名
-    4 + Math.floor(Math.random() * 3)    // 4〜6名
+  let banditCount
+  if (command === "護衛任務") {
+    banditCount = 3 + Math.floor(Math.random() * 3)  // 3〜5名
+  } else {
+    banditCount = 4 + Math.floor(Math.random() * 3)  // 4〜6名
+  }
   
   const bandit = {
     count: banditCount,
     baseCombatPower: banditCount * 20,
-    morale: 40
+    morale: 35
   }
-  
-  showMessage(`盗賊${banditCount}名の襲撃を受けました！`)
   
   // 戦闘
   const playerPower = calculatePlayerCombatPower(player)
@@ -3024,7 +3284,7 @@ function handleAttack(command, player) {
     player.money += config.attackBonus.reward.money
     gainExp(player, "combat", 15)
     
-    return { 
+    return {
       success: true,
       message: "襲撃を撃退しました！上司から褒賞を受けました"
     }
@@ -3037,7 +3297,7 @@ function handleAttack(command, player) {
       showMessage("物資の一部を失いました")
     }
     
-    return { 
+    return {
       success: false,
       message: "襲撃を退けきれませんでした..." 
     }
@@ -3051,60 +3311,35 @@ function handleAttack(command, player) {
 
 #### 巡察での盗賊遭遇
 
+巡察中に盗賊遭遇（20%）した場合、盗賊討伐ミッションを自動開始せず、**盗賊情報（カード）**として保持する。
+
 ```javascript
 function handleBanditEncounter(player) {
-  // 盗賊2〜3名生成
-  const banditCount = 2 + Math.floor(Math.random() * 2)
-  const bandit = {
-    count: banditCount,
-    baseCombatPower: banditCount * 17.5,  // 1人あたり17.5
-    morale: 30
-  }
-  
-  // 戦闘力計算
-  const playerPower = calculatePlayerCombatPower(player)
-  const enemyPower = calculateEnemyCombatPower(bandit)
-  const successRate = calculateBattleSuccessRate(playerPower, enemyPower)
-  
-  // 選択肢表示
-  const choice = showChoice([
-    `討伐する（成功率${successRate}%）`,
-    "見逃す"
-  ])
-  
-  if (choice === "討伐する") {
-    const success = Math.random() * 100 < successRate
-    
-    if (success) {
-      // 成功
-      player.merit += 3
-      player.rice += 0.11
-      player.money += 0.055
-      gainExp(player, "combat", 20)
-      
-      return {
-        success: true,
-        message: `盗賊${banditCount}名を討ち取った！`,
-        merit: 3,
-        reward: { rice: 0.11, money: 0.055 }
-      }
-    } else {
-      // 失敗
-      return {
-        success: false,
-        message: "討伐に失敗した",
-        penalty: "負傷リスク"
-      }
-    }
-  } else {
-    // 見逃す
-    return {
-      success: true,
-      message: "見逃した"
-    }
-  }
+  // ランクはまちまちでよい（D/C/B/A/S）
+  const rank = weightedRandom(["D", "C", "B", "A", "S"], [45, 30, 17, 7, 1])
+  const bandit = generateBandit(rank)
+
+  addBanditCard({
+    id: `card_${Date.now()}`,
+    bandit,
+    foundCalendarWeek: getCalendarWeek(player.turn),
+    escalated: false
+  })
+
+  addLog(`盗賊情報を入手（${rank}）。一覧で対応できる`, "warning")
 }
 ```
+
+#### 盗賊カードの経過ルール
+
+- 発見から2か月（=16ターン、8週）で盗賊ランクが1段階上昇する（D→C→B→A→S）。
+- 発見から4か月（=32ターン、16週）で他勢力に討伐された扱いとしてカードは消滅する。
+- 経過イベント（ランク上昇/消滅）は行動ログに通知してよい。
+
+#### 盗賊カードの処理（報告/討伐）
+
+- **報告する**：討伐功績の40%を即時獲得し、カードは消滅する。
+- **討伐する**：カード由来で討伐した場合、戦利品（盗賊財産の取り分）を2倍にしてよい。
 
 ---
 
@@ -3114,7 +3349,7 @@ function handleBanditEncounter(player) {
 function handleAttack(command, player) {
   const config = COMMANDS[command]
   
-  // 盗賊生成
+  // 襲撃者生成
   let banditCount
   if (command === "護衛任務") {
     banditCount = 3 + Math.floor(Math.random() * 3)  // 3〜5名
@@ -3175,14 +3410,15 @@ function handleAttack(command, player) {
 
 ```javascript
 const SALARY_RICE = {
-  徒士: 1.8,      // 月1.8石
+  徒士: 1.2,      // 月1.2石
   馬上衆: 3.5,    // 月3.5石
   小頭: 5.0       // 月5石
 }
 
 const JUUBOKU_RICE = 0.3    // 従僕：月0.3石/人
-const ASHIGARU_RICE = 1.8   // 徒士：月1.8石/人
+const ASHIGARU_RICE = 1.2   // 徒士：月1.2石/人
 const BASHO_SHU_RICE = 3.5  // 馬上衆：月3.5石/人
+const HORSE_COST = 0.6      // 馬維持費：月0.6石
 ```
 
 ---
@@ -3240,23 +3476,79 @@ function promoteToBashoShu(player) {
   showMessage("推奨：馬の購入（8貫）、徒士の雇用（4貫）")
 }
 
-// 借金返済
-function repayDebt(player, amount) {
-  if (player.money < amount) {
-    return { success: false, message: "金が足りません" }
-  }
+// 借金返済（毎月自動で設定額を返済）
+function repayDebt(player) {
+  const repayAmount = player.monthlyRepayment || 0
+  if (repayAmount === 0) return
   
-  const actualRepay = Math.min(amount, player.debt)
+  const actualRepay = Math.min(repayAmount, player.debt, player.money)
   player.money -= actualRepay
   player.debt -= actualRepay
   
-  return { 
-    success: true, 
-    repaid: actualRepay, 
-    remaining: player.debt 
-  }
+  // 利子加算
+  player.debt += player.debt * player.interestRate
 }
 ```
+
+---
+
+### 9-5. 借金システム
+
+```javascript
+// 借金データ構造
+const loan = {
+  principal: 0,           // 元金
+  debt: 0,                // 現在の借金残高（元金＋利子）
+  monthlyRepayment: 0,    // 月々の返済額（借金時に決定）
+  interestRate: 0.04,     // 月利（役職・金額で変動）
+}
+
+// 借金上限（年収相当）
+const DEBT_LIMIT = {
+  徒士: 14.4,      // 1.2石×12ヶ月
+  馬上衆: 42,      // 3.5石×12ヶ月
+  小頭: 60,        // 5石×12ヶ月
+}
+
+// 金利テーブル（借入額で変動）
+// 借入額が少ないときは金利が高い
+// 借入額が大きい時は金利が下がる（信用が高い）
+// ※将来は商人との親密度で上限・金利が変動予定
+const INTEREST_RATE_BY_AMOUNT = {
+  tier1: { maxAmount: 50, rate: 0.05 },   // 50貫まで：月5%
+  tier2: { maxAmount: 100, rate: 0.04 },  // 100貫まで：月4%
+}
+
+function getInterestRate(totalDebt) {
+  if (totalDebt <= INTEREST_RATE_BY_AMOUNT.tier1.maxAmount) {
+    return INTEREST_RATE_BY_AMOUNT.tier1.rate  // 月5%
+  }
+  return INTEREST_RATE_BY_AMOUNT.tier2.rate  // 月4%
+}
+
+// 借金実行
+function takeLoan(player, amount, monthlyRepayment) {
+  const limit = DEBT_LIMIT[player.rank]
+  if (player.debt + amount > limit) {
+    return { success: false, message: "借金上限を超えています" }
+  }
+  
+  const rate = getInterestRate(player.debt + amount)
+  
+  player.debt += amount
+  player.money += amount
+  player.monthlyRepayment = monthlyRepayment
+  player.interestRate = rate
+  
+  return { success: true, rate }
+}
+```
+
+**設計意図：**
+- 馬上衆だからといって馬に乗る義務はない（馬購入は任意）
+- 借金は「いつでもできるが、金利が痛い」というリスク
+- 役職が上がると信用が上がり、金利が下がる
+- 低役職での借金は高金利で苦しい → 計画的な資金運用を促す
 
 ---
 
@@ -3323,47 +3615,70 @@ function promoteToKogashira(player) {
 
 // エンディング処理
 function showEnding(player) {
-  const endingData = {
-    totalWeeks: player.week,
-    totalYears: Math.floor(player.week / 52),
-    totalMonths: Math.floor((player.week % 52) / 4),
-    finalMerit: player.merit,
-    finalRice: player.rice,
-    finalMoney: player.money,
-    finalDebt: player.debt,
-    combat: player.stats.combat,
-    intelligence: player.stats.intelligence,
-    
-    // 評価
-    grade: calculateGrade(player),
-    message: getEndingMessage(player)
+  const totalWeeks = player.week
+  const years = Math.floor(totalWeeks / 52)
+  const weeks = totalWeeks % 52
+  
+  console.log(`
+┌─────────────────────────────────────────┐
+│                                         │
+│       戦国立身出世SLG Version 0.1       │
+│              エンディング                │
+│                                         │
+├─────────────────────────────────────────┤
+│                                         │
+│  おめでとうございます！                  │
+│  小頭への昇進を果たしました              │
+│                                         │
+│  【最終成績】                            │
+│  ───────────────────────            │
+│  プレイ期間：${years}年${weeks}週       │
+│  最終功績：${player.merit}              │
+│  最終所持金：${player.money.toFixed(2)}貫│
+│  借金：${player.debt.toFixed(2)}貫      │
+│                                         │
+│  【成長】                                │
+│  ───────────────────────            │
+│  武芸：${player.stats.combat}（+${player.stats.combat - 52}）│
+│  統率：${player.stats.command}（+${player.stats.command - 40}）│
+│  知略：${player.stats.intelligence}（+${player.stats.intelligence - 52}）│
+│  政務：${player.stats.administration}（+${player.stats.administration - 56}）│
+│                                         │
+│  【評価】                                │
+│  ───────────────────────            │
+  `)
+  
+  // 評価ランク
+  let rank = ""
+  let comment = ""
+  
+  if (totalWeeks <= 100 && player.debt === 0) {
+    rank = "S"
+    comment = "完璧な出世街道です！"
+  } else if (totalWeeks <= 120) {
+    rank = "A"
+    comment = "素晴らしい出世でした"
+  } else if (totalWeeks <= 140) {
+    rank = "B"
+    comment = "順調な出世でした"
+  } else {
+    rank = "C"
+    comment = "時間はかかりましたが、立派です"
   }
   
-  showEndingScreen(endingData)
-}
-
-function calculateGrade(player) {
-  const weeks = player.week
+  console.log(`
+│  ランク：${rank}                         │
+│  ${comment}                              │
+│                                         │
+│  Version 0.5では組頭を目指せます        │
+│  お楽しみに！                            │
+│                                         │
+└─────────────────────────────────────────┘
+  `)
   
-  if (weeks <= 100) return "S"  // 約2年以内
-  if (weeks <= 120) return "A"  // 約2.3年以内
-  if (weeks <= 140) return "B"  // 約2.7年以内
-  if (weeks <= 156) return "C"  // 3年以内
-  return "D"  // 3年超過
-}
-
-function getEndingMessage(player) {
-  const grade = calculateGrade(player)
-  
-  const messages = {
-    S: "驚異的な速さで小頭に到達した！\n戦国の世で名を馳せるだろう。",
-    A: "優秀な成績で小頭に昇進した。\n前途は明るい。",
-    B: "着実に実力をつけ、小頭になった。\nこれからが本番だ。",
-    C: "時間はかかったが、小頭に到達した。\n地道な努力が実った。",
-    D: "苦労の末、ようやく小頭になった。\nまだまだ先は長い。"
-  }
-  
-  return messages[grade]
+  // タイトルに戻る
+  await showChoice(["タイトルに戻る"])
+  returnToTitle()
 }
 ```
 
@@ -3377,7 +3692,6 @@ function showRankDEvent(player) {
   showMessage("上司：「小頭への昇進を考えている」")
   showMessage("上司：「だが、その前に一つ仕事を任せたい」")
   showMessage("上司：「賊軍が出た。これを討伐せよ」")
-  showMessage("上司：「足軽10名は私が用意する」")
   
   const choice = await showChoice([
     "受ける",
@@ -3902,7 +4216,7 @@ const DEBUG_COMMANDS = {
 **初期状態：**
 ```
 役職：徒士
-扶持米：月1.8石
+扶持米：月1.2石
 従僕：3名
 米：0.5石
 金：10貫
@@ -3911,9 +4225,9 @@ const DEBUG_COMMANDS = {
 
 **月次収支：**
 ```
-収入：1.8石
+収入：1.2石
 支出：
-  従僕3名：0.9石
+  若党2名：0.6石
   生活費：0.15石
   合計：1.05石
 余剰：0.75石/月
@@ -3960,8 +4274,8 @@ const DEBUG_COMMANDS = {
 収入：3.5石
 支出：
   従僕2名：0.6石
-  徒士1名：1.8石
-  馬維持：0.3石
+  徒士1名：1.2石
+  馬維持：0.6石
   生活費：0.15石
   合計：2.85石
 余剰：0.65石/月
@@ -4107,10 +4421,10 @@ const DEBUG_COMMANDS = {
 ### 12-2. 経済バランス
 
 ```
-□ 徒士期に米が余る（月0.75石程度）
-□ 馬上衆昇進で借金40貫が発生
-□ 馬上衆期に米がギリギリ（月0.65石程度）
-□ 小頭昇進で借金が返済できる見込み
+□ 徒士期に米が余る（月0.45石程度）
+□ 馬上衆昇進で馬購入は任意（8貫）
+□ 馬上衆期に余裕がある（馬なし月2.75石、馬あり月2.15石）
+□ 小頭昇進でさらに余裕が出る
 ```
 
 ---
@@ -4118,11 +4432,11 @@ const DEBUG_COMMANDS = {
 ### 12-3. 盗賊討伐
 
 ```
-□ ランクS：徒士で安全に討伐可能
-□ ランクA：徒士でほぼ互角
-□ ランクB：徒士では厳しい、馬上衆で余裕
-□ ランクC：馬上衆で挑戦可能
-□ ランクD：計略と準備で成功率50%程度
+□ ランクD：徒士で安全に討伐可能（犯罪者1〜2名）
+□ ランクC：徒士でほぼ互角（小規模盗賊団3〜5名）
+□ ランクB：徒士では厳しい、馬上衆で余裕（中規模6〜10名）
+□ ランクA：馬上衆で挑戦可能（大規模11〜15名）
+□ ランクS：計略と準備で成功率50%程度（賊軍20〜25名）
 ```
 
 ---
@@ -4179,9 +4493,9 @@ const DEBUG_COMMANDS = {
 □ 致命的なバグがない
 □ 2〜3時間プレイして小頭到達可能
 □ 経済バランスが崩壊していない
-  - 徒士期：月0.75石余剰
-  - 馬上衆期：月0.65石余剰、借金40貫
-  - 小頭期：借金返済可能
+  - 徒士期：月1.05石余剰
+  - 馬上衆期：月2.45石余剰、借金8貫（約3ヶ月で返済）
+  - 小頭期：さらに余裕
 □ 計略が正常に機能する
 □ 出世が正常に動く
 □ セーブ・ロードが正常に動く
@@ -4335,9 +4649,9 @@ const DEBUG_COMMANDS = {
 
 ```
 【徒士】
-  収入：1.8石
-  支出：1.05石
-  余剰：0.75石
+  収入：1.2石
+  支出：0.75石
+  余剰：0.45石
 
 【馬上衆】
   収入：3.5石
@@ -4352,7 +4666,7 @@ const DEBUG_COMMANDS = {
   借金：継続返済中
 ```
 
-#### 主命効率（功績/週）
+#### 主命効率（功績/ターン）
 
 ```
 訓練：5/1 = 5
@@ -4362,7 +4676,7 @@ const DEBUG_COMMANDS = {
 物資輸送：10/1 = 10（襲撃時25）
 
 盗賊討伐（小規模）：15/2 = 7.5
-盗賊討伐（中規模）：30/4 = 7.5
+盗賊討伐（中規模）：30/3 = 10
 盗賊討伐（大規模）：40/4 = 10
 盗賊討伐（討伐戦）：60/4 = 15
 盗賊討伐（賊軍）：80/8 = 10
@@ -4371,11 +4685,11 @@ const DEBUG_COMMANDS = {
 #### 盗賊の強さ
 
 ```
-ランクS（1〜2名）：
+ランクD（1〜2名）：
   戦闘力：15〜50
   徒士（64）で楽勝
 
-ランクA（3〜5名）：
+ランクC（3〜5名）：
   戦闘力：70〜110
   徒士（64）でほぼ互角
 
@@ -4383,13 +4697,13 @@ const DEBUG_COMMANDS = {
   戦闘力：150〜250
   馬上衆（106）で余裕
 
-ランクC（11〜15名）：
+ランクA（11〜15名）：
   戦闘力：300〜450
   馬上衆（106）で挑戦可能
 
-ランクD（23名）：
+ランクS（20〜25名）：
   戦闘力：800 → 計略後504
-  上司支援込み（504+350=854）で互角
+  計略と準備で成功率50%程度
 ```
 
 ---

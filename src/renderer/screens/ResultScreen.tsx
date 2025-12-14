@@ -3,16 +3,19 @@ import { useGameStore } from '../store/gameStore'
 import { Button } from '../components/Button'
 import { COMMANDS } from '../constants/game'
 import { addExperience } from '../utils/experience'
-import { isMonthlyProcessing } from '../utils/time'
+import { isKochouEvaluationTurn, isMonthlyProcessing } from '../utils/time'
 import { CommandType } from '../types/game'
+import { generateBandit } from '../utils/bandit'
 
 interface ResultScreenProps {
   commandName: CommandType
 }
 
 export const ResultScreen: React.FC<ResultScreenProps> = ({ commandName }) => {
-  const { player, addLog, advanceWeek, updatePlayer, setCurrentScreen } = useGameStore()
+  const { player, mandate, addLog, advanceWeek, updatePlayer, setCurrentScreen, markMandateSucceeded, addBanditCard } = useGameStore()
   const [growthResults, setGrowthResults] = useState<{ stat: string; oldValue: number; newValue: number }[]>([])
+  const [specialEvent, setSpecialEvent] = useState<{ type: string; message: string; success?: boolean } | null>(null)
+  const [actualMerit, setActualMerit] = useState(0)
 
   useEffect(() => {
     if (!player) return
@@ -20,9 +23,47 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({ commandName }) => {
     const command = COMMANDS[commandName]
     const results: { stat: string; oldValue: number; newValue: number }[] = []
     let updatedPlayer = { ...player }
+    let merit = command.merit
+    let event: { type: string; message: string; success?: boolean } | null = null
 
-    // 功績付与（updatedPlayerに直接追加）
-    updatedPlayer.merit += command.merit
+    // 巡察：20%で盗賊遭遇イベント
+    if (commandName === '巡察') {
+      if (Math.random() < 0.2) {
+        event = { type: 'bandit_encounter', message: '巡察中に盗賊の痕跡を発見した！盗賊討伐の機会を得た。' }
+      }
+    }
+
+    // 護衛任務：10%で襲撃イベント
+    if (commandName === '護衛任務') {
+      if (Math.random() < 0.1) {
+        const defended = Math.random() < 0.7
+        if (defended) {
+          merit += 5
+          event = { type: 'escort_attack', message: '護衛中に賊に襲われたが、見事撃退した！', success: true }
+        } else {
+          merit = Math.floor(merit * 0.5)
+          event = { type: 'escort_attack', message: '護衛中に賊に襲われ、苦戦した。', success: false }
+        }
+      }
+    }
+
+    // 情報収集：成功率判定（60% + 知略×0.7）
+    if (commandName === '情報収集') {
+      const successRate = Math.min(95, Math.max(5, 60 + Math.floor(updatedPlayer.stats.intelligence * 0.7)))
+      const success = Math.random() * 100 < successRate
+      if (success) {
+        event = { type: 'intel_success', message: `情報収集に成功した（成功率${successRate}%）。`, success: true }
+      } else {
+        merit = 0
+        event = { type: 'intel_fail', message: `情報収集に失敗した（成功率${successRate}%）。功績は得られなかった。`, success: false }
+      }
+    }
+
+    setSpecialEvent(event)
+    setActualMerit(merit)
+
+    // 功績付与
+    updatedPlayer.merit += merit
 
     // 経験値付与と成長判定
     if (command.expGain) {
@@ -53,11 +94,51 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({ commandName }) => {
   const command = COMMANDS[commandName]
 
   const handleNext = () => {
-    advanceWeek()
-    addLog(`${commandName}を行った。功績+${command.merit}`, 'success')
+    const completedTurn = player.week
 
-    // 月次処理チェック
-    if (isMonthlyProcessing(player.week + 1)) {
+    if (mandate && mandate.status === 'active' && mandate.target === commandName) {
+      markMandateSucceeded()
+      addLog('下知を達成した', 'success')
+    }
+
+    advanceWeek()
+    const logType = actualMerit > 0 ? 'success' : 'warning'
+    addLog(`${commandName}を行った。功績+${actualMerit}`, logType)
+
+    // 巡察で盗賊遭遇した場合、盗賊カードとして保管（任意タイミングで対応）
+    if (specialEvent?.type === 'bandit_encounter') {
+      const ranks = ['D', 'C', 'B', 'A', 'S'] as const
+      const weights = [45, 30, 17, 7, 1]
+      const roll = Math.random() * weights.reduce((a, b) => a + b, 0)
+      let acc = 0
+      let selectedRank: typeof ranks[number] = 'D'
+      for (let i = 0; i < ranks.length; i++) {
+        acc += weights[i]
+        if (roll <= acc) {
+          selectedRank = ranks[i]
+          break
+        }
+      }
+
+      const bandit = generateBandit(selectedRank)
+      const cardId = `card_${Date.now()}_${Math.floor(Math.random() * 100000)}`
+      const foundCalendarWeek = Math.floor((player.week + 1) / 2)
+
+      addBanditCard({
+        id: cardId,
+        bandit,
+        foundCalendarWeek,
+        escalated: false,
+      })
+
+      addLog(`盗賊情報を入手（${selectedRank}）。一覧で対応できる`, 'warning')
+    }
+
+    const nextTurn = completedTurn + 1
+
+    if (isKochouEvaluationTurn(nextTurn)) {
+      setCurrentScreen('kochou-evaluation')
+    } else if (isMonthlyProcessing(completedTurn)) {
       setCurrentScreen('monthly-report')
     } else {
       setCurrentScreen('main')
@@ -88,7 +169,12 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({ commandName }) => {
 
           <div className="bg-sengoku-darker border border-sengoku-border p-4">
             <div className="text-sm space-y-2">
-              <div>功績: +{command.merit}</div>
+              {specialEvent && (
+                <div className={`p-2 mb-2 border ${specialEvent.success === false ? 'border-red-500 bg-red-900 bg-opacity-20' : 'border-yellow-500 bg-yellow-900 bg-opacity-20'}`}>
+                  {specialEvent.message}
+                </div>
+              )}
+              <div>功績: +{actualMerit}{actualMerit !== command.merit && ` (通常: ${command.merit})`}</div>
               {command.expGain?.combat && (
                 <div>武芸経験値: +{command.expGain.combat}</div>
               )}
